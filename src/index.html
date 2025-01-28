@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Календарь событий</title>
+  <link rel="stylesheet" href="/src/styles/main.css" />
+  <style src="styles/main.css">
+    /* Основные стили календаря */
+    #calendar {
+      width: 1200px;
+      height: 800px;
+      margin: 20px auto;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    #task-all-day {
+    margin: 10px 0;
+}
+
+#task-all-day:checked ~ #task-start,
+#task-all-day:checked ~ #task-end {
+  display: none;
+}
+/* Выравнивание временных ячеек */
+.fc-time-grid .fc-slats td {
+    height: 40px !important;
+    border-bottom: none;
+}
+.fc .fc-timegrid-slot {
+    height: 3.5em;
+}
+
+/* Фикс для последней строки */
+.fc-time-grid .fc-slats tr:last-child td {
+    height: 0 !important;
+    visibility: hidden;
+}
+
+    /* Модальное окно */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+      z-index: 1000;
+      width: 400px;
+      max-width: 90%;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(3px);
+      z-index: 999;
+    }
+
+    .modal.open, .modal-overlay.open {
+      display: block;
+    }
+
+    /* Стили формы */
+    #task-form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    #task-form label {
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    #task-form input,
+    #task-form select {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 100%;
+    }
+
+    #task-form button {
+      padding: 12px 20px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    #task-form button:hover {
+      background: #45a049;
+    }
+
+    #modal-close {
+      background: #f44336;
+      margin-top: 10px;
+    }
+
+    #modal-close:hover {
+      background: #d32f2f;
+    }
+
+    /* Анимация модального окна */
+    .modal {
+      animation: modalOpen 0.1s ease-out;
+    }
+
+    @keyframes modalOpen {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+    /* Добавляем стили */
+#settings-btn {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 10px;
+}
+
+.setting-group {
+  margin: 15px 0;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+}
+#create-event-btn {
+  background-color: #4CAF50; /* Зеленый цвет */
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+#create-event-btn:hover {
+  background-color: #45a049; /* Темно-зеленый цвет при наведении */
+}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="calendar"></div>
+  </div>
+    <div id="employee-filter">
+      <label for="employee">Выберите сотрудника: </label>
+      <select id="employee">
+        <option value="">Все сотрудники</option>
+      </select>
+    </div>
+    <!-- Добавляем в HTML -->
+<button id="settings-btn">Настройки</button>
+<div id="settings-modal" class="modal">
+  <div class="modal-content">
+    <h2>Настройки</h2>
+    
+    <div class="setting-group">
+      <label>Показывать "Весь день":</label>
+      <input type="checkbox" id="toggle-allday" checked>
+    </div>
+
+    <div class="setting-group">
+      <h3>Цвета сотрудников</h3>
+      <select id="employee-color-select">
+        <option value="">Выберите сотрудника</option>
+      </select>
+      <input type="color" id="employee-color-picker">
+      <button id="save-color">Сохранить цвет</button>
+    </div>
+
+    <button id="close-settings">Закрыть</button>
+  </div>
+</div>
+  <!-- Модальное окно для создания задачи -->
+  <div id="modal-overlay" class="modal-overlay"></div>
+  <div id="modal" class="modal">
+    <h2>Создать задачу</h2>
+    <form id="task-form">
+      <label for="task-title">Название задачи:</label>
+      <input type="text" id="task-title" required />
+      
+      <label for="task-all-day">Весь день:</label>
+      <input type="checkbox" id="task-all-day" /> <!-- Добавьте этот элемент -->
+
+      <label for="task-employee">Сотрудник:</label>
+      <select id="task-employee" required>
+        <option value="">Выберите сотрудника</option>
+      </select>
+
+      <label for="task-start">Начало:</label>
+      <input type="datetime-local" id="task-start" required />
+
+      <label for="task-end">Конец:</label>
+      <input type="datetime-local" id="task-end" required />
+
+      <button type="submit">Создать</button>
+      <button type="button" id="modal-close">Закрыть</button>
+    </form>
+  </div>
+  <script src="https://api.bitrix24.com/api/v1/"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
