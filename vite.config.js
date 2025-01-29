@@ -1,9 +1,14 @@
-import { defineConfig } from 'vite';
 import path from 'path';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
-  root: path.resolve(__dirname, 'src'), // Указываем папку src как корневую
+  root: path.resolve(__dirname, 'src'), // Корневая папка для разработки
+  base: './', // Делаем пути относительными, чтобы работало на сервере
+  build: {
+    outDir: path.resolve(__dirname, 'dist'), // Ставим выходную папку ВНЕ src
+    emptyOutDir: true, // Чистим dist перед билдом
+  },
   server: {
-    port: 3000, // Порт для локального сервера
+    port: 3000,
   },
 });
