@@ -1,14 +1,8 @@
-import path from 'path';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
+import baseConfig from './config/vite.config.base.js';
 
 export default defineConfig({
-  root: path.resolve(__dirname, 'src'), // Корневая папка для разработки
-  base: './', // Делаем пути относительными, чтобы работало на сервере
-  build: {
-    outDir: path.resolve(__dirname, 'dist'), // Ставим выходную папку ВНЕ src
-    emptyOutDir: true, // Чистим dist перед билдом
-  },
-  server: {
-    port: 3000,
-  },
+  ...baseConfig,
+  plugins: [tailwindcss()],
 });

@@ -1,0 +1,157 @@
+@import 'tailwindcss';
+
+/* Базовые стили */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+}
+
+/* Контейнер */
+main {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100vw;
+  transition: width 0.3s ease-in-out;
+}
+
+/* Боковое меню */
+.sidebar {
+  transition: width 0.3s ease-in-out;
+}
+
+/* Анимация текста */
+.menu-text {
+  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+/* Иконки центрируются */
+.menu-icon {
+  transition: margin 0.3s ease-in-out;
+}
+
+/* Календарь */
+#calendar-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: white;
+  transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
+  height: 100vh;
+  width: 100%; /* 4rem = 64px (ширина узкого меню) */
+}
+
+/* Когда меню расширяется */
+.sidebar.w-64 ~ #calendar-container {
+  width: calc(100vw - 16rem); /* 16rem = 256px (ширина широкого меню) */
+}
+
+/* Если меню узкое, календарь расширяется */
+#calendar-container.expanded {
+  margin-left: 4rem;
+}
+
+/* Настроим контейнер FullCalendar */
+.fc {
+  @apply bg-white shadow-lg rounded-lg;
+}
+
+/* Улучшенные кнопки FullCalendar */
+.fc-button {
+  @apply bg-blue-500 text-white font-semibold px-4 py-2 rounded-md shadow-md transition duration-200;
+}
+
+/* Ховер-эффект для кнопок */
+.fc-button:hover {
+  @apply bg-blue-700 text-white scale-105;
+}
+
+/* Делаем кнопки FullCalendar более аккуратными */
+.fc-toolbar {
+  @apply flex justify-between items-center p-4 bg-gray-100 rounded-t-lg;
+}
+
+/* Делаем события в календаре красивыми */
+.fc-event {
+  @apply bg-gradient-to-r from-green-400 to-green-600 text-white px-3 py-1 rounded-lg shadow-md;
+}
+
+.fc-event:hover {
+  @apply scale-105 transition duration-200;
+}
+
+/* Анимация смены видов */
+.fc-view {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Делаем эффекты при наведении */
+.fc-event:hover {
+  @apply scale-105 shadow-lg transition duration-200 ease-in-out;
+}
+
+/* Градиентный фон заголовка */
+.fc-toolbar {
+  @apply bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold p-4 rounded-t-lg;
+}
+
+/* Стили кнопок */
+.fc-button {
+  @apply bg-blue-500 text-white px-4 py-2 rounded-md shadow-md transition-all duration-300;
+}
+
+.fc-button:hover {
+  @apply bg-blue-700 text-white scale-105;
+}
+
+/* Улучшаем внешний вид событий */
+.fc-event {
+  @apply bg-gradient-to-r from-green-400 to-green-600 text-white px-3 py-1 rounded-lg shadow-md;
+}
+
+/* Улучшаем сетку времени только для ДНЕВНОГО вида */
+.fc-timegrid.fc-timeGridDay-view .fc-timegrid-slot {
+  @apply border-b border-gray-300 text-gray-700 font-medium;
+}
+
+/* Улучшаем чётные ряды только в режиме "День" */
+.fc-timegrid.fc-timeGridDay-view .fc-timegrid-slot:nth-child(even) {
+  @apply bg-gray-100;
+}
+
+/* Часы слева (09:00, 10:00) — только в режиме "День" */
+.fc-timegrid.fc-timeGridDay-view .fc-timegrid-slot-label {
+  @apply text-gray-800 font-bold text-lg px-2;
+}
+
+/* Для сетки времени в режиме "Неделя" */
+.fc-timegrid.fc-timeGridWeek-view .fc-timegrid-slot {
+  @apply border-b border-gray-200 text-gray-600;
+}
+
+/* Подсветка чётных дней в режиме "Неделя" */
+.fc-timegrid.fc-timeGridWeek-view .fc-day:nth-child(even) {
+  @apply bg-gray-50;
+}
+
+/* ✅ UserInfo ТЕПЕРЬ двигается при открытии меню */
+#user-info-container {
+  @apply w-[calc(100vw-4rem)] bg-white shadow-md p-4 rounded-lg flex items-center gap-4 transition-all duration-300;
+  z-index: 50; /* Поверх календаря, но НЕ над меню */
+  height: 4rem; /* Ограничиваем высоту */
+}
+
+/* Когда меню расширено, UserInfo двигается */
+.sidebar.w-64 ~ #user-info-container {
+  left: 16rem;
+  width: calc(100vw - 16rem);
+}
+
+/* Контейнер календаря */
+#calendar-container {
+  @apply flex-grow  bg-white shadow-lg rounded-lg w-full;
+}
