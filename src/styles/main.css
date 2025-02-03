@@ -155,3 +155,26 @@ main {
 #calendar-container {
   @apply flex-grow  bg-white shadow-lg rounded-lg w-full;
 }
+
+/* Стили применяются только к select2 внутри блока с классом .custom-executor-wrapper */
+.custom-executor-wrapper .select2-container--default .select2-selection--single {
+  border: 1px solid #000000; /* соответствует Tailwind: border */
+  border-radius: 0.25rem; /* соответствует Tailwind: rounded */
+  width: 550px !important;
+  height: 40px !important;
+}
+
+/* Выравнивание текста внутри контейнера */
+.custom-executor-wrapper
+  .select2-container--default
+  .select2-selection--single
+  .select2-selection__rendered {
+  line-height: 2.5rem; /* Подберите значение, соответствующее вашим input-элементам */
+}
+
+/* Стили для состояния фокуса (при необходимости) */
+.custom-executor-wrapper .select2-container--default .select2-selection--single:focus,
+.custom-executor-wrapper .select2-container--default .select2-selection--single:focus-within {
+  border-color: #000000; /* Например, border-blue-500 */
+  outline: none;
+}

@@ -3,6 +3,7 @@ import ruLocale from '@fullcalendar/core/locales/ru';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
+import { showEventForm } from '../components/EventForm.js';
 
 export function initCalendar() {
   let calendarEl = document.getElementById('calendar-container');
@@ -46,7 +47,15 @@ export function initCalendar() {
 
     contentClassNames: ['bg-white', 'shadow-lg', 'rounded-lg', 'p-4'],
     buttonClassNames: ['bg-blue-500', 'text-white', 'px-4', 'py-2', 'rounded-md', 'shadow'],
+
+    // При клике по ячейке открываем модальное окно
+    dateClick: (info) => {
+      console.log('Клик по дате:', info.dateStr);
+      showEventForm(info.dateStr);
+    },
   });
 
   calendar.render();
+  // Возвращаем экземпляр календаря
+  return calendar;
 }

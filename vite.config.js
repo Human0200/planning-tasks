@@ -5,4 +5,7 @@ import baseConfig from './config/vite.config.base.js';
 export default defineConfig({
   ...baseConfig,
   plugins: [tailwindcss()],
+  optimizeDeps: {
+    include: ['jquery', 'select2'],
+  },
 });
