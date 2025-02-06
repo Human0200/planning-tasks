@@ -66,37 +66,56 @@ document.addEventListener('DOMContentLoaded', () => {
         // Преобразуем задачи в формат FullCalendar
         const events = tasks.map((t) => {
           const executorId = t.responsibleId;
-          const color = colorMap[executorId] || '#cccccc';
+          const color = String(colorMap[executorId] || '#cccccc'); // Принудительно приводим к строке
+
+          console.log(`🎨 Цвет для ID ${executorId}:`, color); // Проверяем в логах
 
           return {
             id: t.id,
             title: t.title || 'Без названия',
             start: t.startDatePlan,
             end: t.endDatePlan,
+            allDay:
+              t.allDay === true ||
+              t.extendedProps?.allDay === true ||
+              (!t.startDatePlan && !t.endDatePlan),
             backgroundColor: color,
             borderColor: color,
-            extendedProps: { executor: executorId, deadline: t.deadline },
+            eventColor: color,
+            textColor: '#ffffff', // Цвет текста для контраста
+            classNames: [`color-${executorId}`], // Добавляем класс для стилизации
+            extendedProps: {
+              executor: executorId,
+              deadline: t.deadline,
+              color: color,
+              comment: t.description || '',
+              allDay: t.allDay === true || (!t.startDatePlan && !t.endDatePlan), // Дублируем в extendedProps
+            },
           };
         });
 
         // Добавляем события в календарь
         calendar.addEventSource(events);
         console.log('✅ Задачи добавлены:', events.length);
+
+        // Фильтруем задачи сразу после загрузки
+        filterEvents($('#user-select').val());
       });
     });
   });
 
-  // Фильтрация событий по пользователю
-  function filterEvents(selectedUser) {
+  window.filterEvents = function (selectedUser) {
     if (!window.calendar) return;
-    window.calendar.getEvents().forEach((event) => {
-      event.setProp(
-        'display',
-        selectedUser === 'all' || event.extendedProps.executor === selectedUser ? 'auto' : 'none',
-      );
-    });
-  }
 
+    window.calendar.getEvents().forEach((event) => {
+      const executorId = String(event.extendedProps.executor);
+      const shouldShow = selectedUser === 'all' || executorId === selectedUser;
+
+      event.setProp('display', shouldShow ? 'auto' : 'none');
+    });
+
+    console.log(`🔄 Фильтрация завершена, выбран: ${selectedUser}`);
+  };
   // Обработка кликов по меню
   document.addEventListener('click', (e) => {
     const link = e.target.closest('[data-menu-action]');
@@ -116,17 +135,21 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('✅ Вставляем UserInfo в #calendar-container');
   console.log('✅ Контейнер #calendar-container найден, создаем UserInfo...');
 
-  const userInfoElement = UserInfo((selectedUser) => {
-    console.log('🔄 Выбран новый пользователь:', selectedUser);
-    filterEvents(selectedUser);
-  });
+  setTimeout(() => {
+    const userInfoElement = UserInfo((selectedUser) => {
+      console.log('🔄 Выбран новый пользователь:', selectedUser);
+      filterEvents(selectedUser);
+    });
 
-  if (calendarContainer && userInfoElement) {
-    console.log('✅ Добавляем UserInfo в #calendar-container');
-    calendarContainer.insertBefore(userInfoElement, calendarContainer.firstChild);
-  } else {
-    console.error('❌ Ошибка: Не удалось вставить UserInfo — контейнер или элемент не определен!');
-  }
+    if (calendarContainer && userInfoElement) {
+      console.log('✅ Добавляем UserInfo в #calendar-container');
+      calendarContainer.insertBefore(userInfoElement, calendarContainer.firstChild);
+    } else {
+      console.error(
+        '❌ Ошибка: Не удалось вставить UserInfo — контейнер или элемент не определен!',
+      );
+    }
+  }, 1000); // Задержка 200 мс для завершения рендеринга
 
   console.log('✅ Календарь запущен');
 });

@@ -68,6 +68,7 @@ export function updateTask(taskId, taskData, callback) {
  * @param {Function} callback - Функция, вызываемая после выполнения запроса.
  */
 export function deleteTask(taskId, callback) {
+  console.log('🗑️ Попытка удаления задачи с ID:', taskId, typeof taskId);
   BX24.callMethod('tasks.task.delete', { taskId }, (result) => {
     if (result.error()) {
       console.error('Ошибка удаления задачи:', result.error());
@@ -78,64 +79,59 @@ export function deleteTask(taskId, callback) {
   });
 }
 
-/**
- * Получает все задачи через batch-запросы или постранично.
- * В SELECT указываем поля в высоком регистре, но Bitrix24 вернёт их в нижнем.
- * @param {Function} callback (tasks, error) => {}
- */
 export function loadAllTasks(callback) {
-  let tasks = new Map(); // Используем Map для хранения уникальных задач
-  let currentPage = 1;
-  let isLoading = false;
+  let tasks = new Map();
+  let batchSize = 50; // Количество задач на одну страницу
+  let maxBatch = 5; // Количество страниц в одном batch-запросе
+  let startIndex = 0;
 
-  function fetchPage(page) {
-    if (isLoading) return;
-    isLoading = true;
+  function fetchBatch(start) {
+    let batch = {};
+    console.log(`📡 Запрос batch с ${maxBatch} страниц, начиная с ${start}`);
 
-    console.log(`📡 Загружаем задачи, страница ${page}...`);
-    BX24.callMethod(
-      'tasks.task.list',
-      {
-        FILTER: {}, // Можно добавить фильтры при необходимости
-        SELECT: ['ID', 'TITLE', 'RESPONSIBLE_ID', 'START_DATE_PLAN', 'END_DATE_PLAN', 'DEADLINE'],
-        PARAMS: { NAV_PARAMS: { NAV_PAGE_SIZE: 50, NAV_PAGE: page } },
-      },
-      (res) => {
-        isLoading = false;
+    for (let i = 0; i < maxBatch; i++) {
+      let startPosition = start + i * batchSize;
+      batch[`page_${i}`] = [
+        'tasks.task.list',
+        {
+          FILTER: {}, // Здесь можно добавить фильтрацию
+          SELECT: ['ID', 'TITLE', 'RESPONSIBLE_ID', 'START_DATE_PLAN', 'END_DATE_PLAN', 'DEADLINE'],
+          start: startPosition,
+        },
+      ];
+    }
 
-        if (res.error()) {
-          console.error('❌ Ошибка при загрузке задач:', res.error());
-          callback(null, res.error());
+    BX24.callBatch(batch, (res) => {
+      let hasMore = false;
+
+      for (let key in res) {
+        if (res[key].error()) {
+          console.error(`❌ Ошибка загрузки задач (${key}):`, res[key].error());
+          callback(null, res[key].error());
           return;
         }
 
-        const data = res.data();
-        if (!data || !Array.isArray(data.tasks) || data.tasks.length === 0) {
-          console.log('✅ Все задачи загружены, возвращаем результат.');
-          callback(Array.from(tasks.values()), null);
-          return;
+        const data = res[key].data();
+        if (data && Array.isArray(data.tasks) && data.tasks.length > 0) {
+          console.log(`📥 Загружены ${data.tasks.length} задач(и) с ${key}`);
+
+          data.tasks.forEach((task) => {
+            tasks.set(task.id, task);
+          });
+
+          // Если данные пришли, скорее всего есть еще задачи
+          hasMore = true;
         }
+      }
 
-        console.log(`📥 Загружены ${data.tasks.length} задач(и) с страницы ${page}.`);
-
-        // Добавляем задачи в Map (ID => объект)
-        data.tasks.forEach((task) => {
-          tasks.set(task.id, task); // Уникальное добавление
-        });
-
-        // Проверяем, есть ли следующая страница (и отличается ли она от текущей)
-        const next = res.answer?.next;
-        if (next && next > page) {
-          console.log(`➡️ Переход на следующую страницу: ${next}`);
-          fetchPage(next);
-        } else {
-          console.log(`✅ Все страницы загружены. Всего задач: ${tasks.size}`);
-          callback(Array.from(tasks.values()), null);
-        }
-      },
-    );
+      if (hasMore) {
+        fetchBatch(start + maxBatch * batchSize);
+      } else {
+        console.log(`✅ Все задачи загружены. Всего задач: ${tasks.size}`);
+        callback(Array.from(tasks.values()), null);
+      }
+    });
   }
 
-  // Начинаем загрузку с первой страницы
-  fetchPage(currentPage);
+  fetchBatch(startIndex);
 }

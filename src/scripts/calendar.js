@@ -28,6 +28,8 @@ export function initCalendar(settings) {
     slotMinTime: settings.slotMinTime,
     slotMaxTime: settings.slotMaxTime,
     slotDuration: settings.slotDuration,
+    allDaySlot: true, // Включает секцию "Весь день
+    allDayDefault: true,
 
     slotLabelInterval: '01:00:00',
     slotLabelFormat: {

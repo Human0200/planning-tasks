@@ -270,7 +270,7 @@ export function showEventForm(date, eventData, options = {}) {
       });
     } else {
       // Редактирование задачи
-      const taskId = eventData.extendedProps.bitrix24Id;
+      const taskId = eventData.extendedProps?.bitrix24Id || eventData.id;
       updateTask(taskId, taskData, (res, err) => {
         if (err) {
           alert('Ошибка обновления задачи');
@@ -293,7 +293,11 @@ export function showEventForm(date, eventData, options = {}) {
   // Удаление задачи
   if (!isNew) {
     document.getElementById('delete-event').addEventListener('click', () => {
-      const taskId = eventData.extendedProps.bitrix24Id;
+      const taskId = eventData.extendedProps?.bitrix24Id || eventData.id;
+      if (!taskId) {
+        console.error('❌ Ошибка: ID задачи не найден!');
+        return;
+      }
       deleteTask(taskId, (success, err) => {
         if (success) {
           eventData.remove();

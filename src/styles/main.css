@@ -178,3 +178,20 @@ main {
   border-color: #000000; /* Например, border-blue-500 */
   outline: none;
 }
+
+.fc-event {
+  background-image: none !important;
+  background-color: var(--fc-event-bg-color) !important;
+  border-color: var(--fc-event-border-color) !important;
+}
+
+.fc-event[data-color] {
+  background-color: attr(data-color) !important;
+  border-color: attr(data-color) !important;
+}
+
+/* Или на основе классов */
+[class^='color-'] {
+  background-color: inherit !important;
+  border-color: inherit !important;
+}
