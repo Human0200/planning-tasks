@@ -1,31 +1,43 @@
-import { getUserData } from '../services/userModel.js';
+import { getUserData, getUsers } from '../services/userService.js';
 
 export function UserInfo(onUserChange) {
   const userInfoContainer = document.createElement('div');
   userInfoContainer.id = 'user-info-container';
   userInfoContainer.className = 'flex items-center bg-white shadow-md p-4 rounded-lg gap-6';
 
+  // Базовая разметка без жестко зашитых опций – опции заполним динамически
   userInfoContainer.innerHTML = `
-    <img id="user-avatar" src="https://i.pravatar.cc/50?u=user1" class="rounded-full w-12 h-12 shadow-md" alt="Аватар">
-<div class="flex flex-col">
-  <p id="user-name" class="text-lg font-semibold text-gray-900">Иванов Иван</p>
-  <p id="user-role" class="text-sm text-gray-600">Менеджер проектов</p>
-</div>
-   <select id="user-select" class="border rounded px-3 py-2 bg-gray-100 w-96" >
-      <option value="all">Все</option>
-      <option value="user1" selected>Иванов Иван</option>
-      <option value="user2">Петров Петр</option>
-      <option value="user3">Сидоров Сидор</option>
-      <option value="user4">Алексеева Анна</option>
-      <option value="user5">Семенов Виктор</option>
-    </select>
+    <img id="user-avatar" src="https://bg59.online/We/photos/all.png" class="rounded-full w-12 h-12 shadow-md" alt="Аватар">
+    <div class="flex flex-col">
+      <p id="user-name" class="text-lg font-semibold text-gray-900">Все сотрудники</p>
+      <p id="user-role" class="text-sm text-gray-600">Просмотр всех задач</p>
+    </div>
+    <select id="user-select" class="border rounded px-3 py-2 bg-gray-100 w-96"></select>
   `;
 
-  // Дожидаемся появления элемента в DOM перед инициализацией Select2
-  setTimeout(() => {
+  const selectEl = userInfoContainer.querySelector('#user-select');
+
+  // Заполняем селект реальными данными пользователей через вызов BX24 API (getUsers)
+  getUsers((users) => {
+    selectEl.innerHTML = '';
+
+    // Добавляем опцию "Все"
+    const allOption = document.createElement('option');
+    allOption.value = 'all';
+    allOption.textContent = 'Все';
+    selectEl.appendChild(allOption);
+
+    // Для каждого пользователя создаем элемент option
+    users.forEach((user) => {
+      const option = document.createElement('option');
+      option.value = user.ID; // Используем ID пользователя из Bitrix24
+      option.textContent = `${user.NAME} ${user.LAST_NAME}`;
+      selectEl.appendChild(option);
+    });
+
+    // Инициализируем select2, если он подключен
     if ($.fn.select2) {
-      console.log('✅ Select2 найден, инициализируем...');
-      $('#user-select').select2({
+      $(selectEl).select2({
         placeholder: 'Выберите пользователя',
         allowClear: true,
         width: '300px',
@@ -33,26 +45,46 @@ export function UserInfo(onUserChange) {
     } else {
       console.error('❌ Ошибка: Select2 не найден!');
     }
-  }, 100);
 
-  // Обработчик смены пользователя
-  userInfoContainer.querySelector('#user-select').addEventListener('change', function () {
+    // Значение по умолчанию – "Все"
+    $(selectEl).val('all').trigger('change');
     if (typeof onUserChange === 'function') {
-      onUserChange(this.value);
+      onUserChange('all');
     }
+  });
 
-    // Если выбрана опция "Все", меняем аватар и текст
-    const userAvatar = document.getElementById('user-avatar');
-    if (this.value === 'all') {
-      userAvatar.src = 'https://cdn-icons-png.flaticon.com/512/1946/1946429.png'; // Иконка "Все"
-      document.getElementById('user-name').textContent = 'Все сотрудники';
-      document.getElementById('user-role').textContent = 'Просмотр всех задач';
-    } else {
-      const selectedUser = getUserData(this.value);
-      userAvatar.src = selectedUser.avatar;
-      document.getElementById('user-name').textContent = selectedUser.name;
-      document.getElementById('user-role').textContent = selectedUser.role;
-    }
+  // Обработчик изменения селекта через jQuery для совместимости с select2
+  $(selectEl).on('change', function () {
+    const selectedValue = $(this).val();
+    console.log('Выбранное значение:', selectedValue);
+
+    setTimeout(() => {
+      const userAvatar = document.querySelector('#user-avatar');
+      const userName = document.querySelector('#user-name');
+      const userRole = document.querySelector('#user-role');
+
+      console.log('🔍 Проверка элементов userInfo:', userAvatar, userName, userRole);
+
+      if (!userAvatar || !userName || !userRole) {
+        console.error('❌ Ошибка: Один из элементов (avatar, name, role) не найден в DOM!');
+        return;
+      }
+      if (selectedValue === 'all') {
+        userAvatar.src = 'https://bg59.online/We/photos/all.png';
+        userName.textContent = 'Все сотрудники';
+        userRole.textContent = 'Просмотр всех задач';
+      } else {
+        getUserData(selectedValue, (selectedUser) => {
+          console.log('Полученные данные пользователя:', selectedUser);
+          if (selectedUser) {
+            userAvatar.src =
+              selectedUser.PERSONAL_PHOTO || 'https://bg59.online/We/photos/avatar.png';
+            userName.textContent = `${selectedUser.NAME} ${selectedUser.LAST_NAME}`;
+            userRole.textContent = selectedUser.WORK_POSITION || 'Пользователь';
+          }
+        });
+      }
+    }, 300); // Увеличил задержку до 300 мс для DOM-рендеринга
   });
 
   return userInfoContainer;

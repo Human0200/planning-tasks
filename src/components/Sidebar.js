@@ -12,7 +12,7 @@ export function Sidebar() {
     <nav class="w-full flex-1">
       <ul class="space-y-2 w-full">
         ${createMenuItem('dashboard', 'Главная')}
-        ${createMenuItem('event', 'Календарь')}
+        ${createMenuItem('event', 'Календарь', 'data-menu-action="Календарь"')}
         ${createMenuItem('assignment', 'Задачи')}
         ${createMenuItem('settings', 'Настройки')}
         ${createMenuItem('group', 'Пользователи')}
@@ -31,7 +31,10 @@ export function Sidebar() {
 function createMenuItem(icon, text) {
   return `
     <li class="menu-item flex items-center w-full">
-      <a href="#" class="flex items-center p-3 rounded-lg hover:bg-gray-700 transition w-full">
+      <a href="#" 
+         class="flex items-center p-3 rounded-lg hover:bg-gray-700 transition w-full"
+         data-menu-action="${text}"
+      >
         <span class="material-icons text-xl menu-icon">${icon}</span>
         <span class="ml-3 menu-text opacity-0 invisible transition-opacity duration-300">${text}</span>
       </a>
