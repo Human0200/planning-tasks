@@ -155,14 +155,11 @@ export function showEventForm(date, eventData, options = {}) {
     </form>
   `;
 
-  createModal(modalTitle, formContent, {
-    width: '600px',
-    backdrop: 'rgba(0, 0, 0, 0.5)',
-  });
+  const modalInstance = createModal(modalTitle, formContent, { width: '600px' });
 
   // Кнопка "Отмена"
   document.getElementById('cancel-event').addEventListener('click', () => {
-    document.getElementById('modal-container').remove();
+    modalInstance.close();
   });
 
   // Динамическая загрузка исполнителей, если userFilterValue === 'all'
@@ -297,7 +294,7 @@ export function showEventForm(date, eventData, options = {}) {
       });
     }
 
-    document.getElementById('modal-container').remove();
+    modalInstance.close();
   });
 
   // Удаление задачи
@@ -315,7 +312,7 @@ export function showEventForm(date, eventData, options = {}) {
         } else {
           alert('Ошибка удаления задачи');
         }
-        document.getElementById('modal-container').remove();
+        modalInstance.close();
       });
     });
   }

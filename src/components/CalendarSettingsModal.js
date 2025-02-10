@@ -54,7 +54,8 @@ export function showCalendarSettingsModal() {
     </div>
   `;
 
-  createModal(title, content, { width: '500px' });
+  // Создаём модальное окно и сохраняем экземпляр для дальнейшего управления
+  const modalInstance = createModal(title, content, { width: '500px' });
 
   // Загружаем текущие настройки пользователя **после отрисовки модального окна**
   BX24.callMethod('user.option.get', { option: 'calendar_settings' }, (res) => {
@@ -86,10 +87,10 @@ export function showCalendarSettingsModal() {
   });
 
   // Кнопка "Отмена"
+  // Обработчик кнопки "Отмена" — закрываем окно через modalInstance.close()
   document.getElementById('cancel-calendar-settings')?.addEventListener('click', () => {
-    document.getElementById('modal-container')?.remove();
+    modalInstance.close();
   });
-
   // Сохранение настроек
   document.getElementById('save-calendar-settings')?.addEventListener('click', () => {
     const newSettings = {
@@ -108,6 +109,7 @@ export function showCalendarSettingsModal() {
         } else {
           console.log('✅ Настройки календаря сохранены:', newSettings);
           document.getElementById('modal-container')?.remove();
+          modalInstance.close();
           location.reload(); // Перезагружаем страницу, чтобы применились настройки
         }
       },

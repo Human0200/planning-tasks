@@ -30,10 +30,12 @@ export function showUserSettingsModal(calendar) {
     </div>
   `;
 
-  createModal(title, content, { width: '600px' });
+  // Создаём модальное окно и сохраняем его экземпляр
+  const modalInstance = createModal(title, content, { width: '600px' });
 
+  // Обработчик кнопки "Отмена" — закрываем окно через modalInstance.close()
   document.getElementById('cancel-user-settings')?.addEventListener('click', () => {
-    document.getElementById('modal-container')?.remove();
+    modalInstance.close();
   });
 
   const userListContainer = document.getElementById('user-settings-list');
@@ -119,7 +121,7 @@ export function showUserSettingsModal(calendar) {
         console.error('Ошибка сохранения цветов:', res.error());
       } else {
         console.log('✅ Цвета сохранены:', newColors);
-        document.getElementById('modal-container')?.remove();
+        modalInstance.close();
       }
     });
   });
