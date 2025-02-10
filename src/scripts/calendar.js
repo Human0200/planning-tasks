@@ -5,7 +5,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import { showEventForm } from '../components/EventForm.js';
 
-export function initCalendar(settings) {
+export function initCalendar(settings, colorMap) {
   let calendarEl = document.getElementById('calendar-container');
 
   if (!calendarEl) {
@@ -28,7 +28,7 @@ export function initCalendar(settings) {
     slotMinTime: settings.slotMinTime,
     slotMaxTime: settings.slotMaxTime,
     slotDuration: settings.slotDuration,
-    allDaySlot: true, // Включает секцию "Весь день
+    allDaySlot: settings.allDaySlot, // Включает секцию "Весь день
     allDayDefault: true,
 
     slotLabelInterval: '01:00:00',
@@ -51,15 +51,22 @@ export function initCalendar(settings) {
 
     // При клике по ячейке для создания новой задачи
     dateClick: (info) => {
-      console.log('Клик по дате:', info.dateStr, 'allDay=', info.allDay);
-      showEventForm(info.dateStr, null, { allDay: info.allDay });
+      console.log('📅 Клик по дате:', info.dateStr, 'allDay=', info.allDay);
+
+      // Проверяем, куда кликнули
+      const isAllDay = info.allDay === true;
+
+      console.log(`✅ Определено: ${isAllDay ? 'Весь день' : 'Обычное время'}`);
+
+      // Вызываем создание задачи с правильным `allDay`
+      showEventForm(info.dateStr, null, { allDay: isAllDay, colorMap });
     },
 
     // Новый обработчик клика по уже существующему событию (для редактирования)
     eventClick: (info) => {
       console.log('Клик по событию:', info.event);
       // Вызываем модальное окно для редактирования и передаем объект события
-      showEventForm(null, info.event);
+      showEventForm(null, info.event, { colorMap });
     },
   });
 

@@ -180,18 +180,8 @@ main {
 }
 
 .fc-event {
-  background-image: none !important;
-  background-color: var(--fc-event-bg-color) !important;
-  border-color: var(--fc-event-border-color) !important;
-}
-
-.fc-event[data-color] {
-  background-color: attr(data-color) !important;
-  border-color: attr(data-color) !important;
-}
-
-/* Или на основе классов */
-[class^='color-'] {
-  background-color: inherit !important;
-  border-color: inherit !important;
+  background-image: none !important; /* Полностью убираем градиент */
+  --tw-gradient-from: transparent !important;
+  --tw-gradient-to: transparent !important;
+  --tw-gradient-stops: transparent !important;
 }

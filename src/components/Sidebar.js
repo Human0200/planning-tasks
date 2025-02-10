@@ -13,7 +13,11 @@ export function Sidebar() {
       <ul class="space-y-2 w-full">
         ${createMenuItem('dashboard', 'Главная')}
         ${createMenuItem('event', 'Календарь', 'data-menu-action="Календарь"')}
-        ${createMenuItem('assignment', 'Задачи')}
+        ${createMenuItem(
+          'assignment',
+          'Незапланированные задачи',
+          'data-menu-action="Незапланированные задачи"',
+        )}
         ${createMenuItem('settings', 'Настройки')}
         ${createMenuItem('group', 'Пользователи')}
       </ul>

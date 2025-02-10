@@ -1,5 +1,6 @@
 import { showCalendarSettingsModal } from '../components/CalendarSettingsModal.js'; // Добавляем импорт
 import { Sidebar } from '../components/Sidebar.js';
+import { showTaskPlanningModal } from '../components/TaskPlanningModal.js';
 import { UserInfo } from '../components/UserInfo.js';
 import { showUserSettingsModal } from '../components/UserSettingsModal.js';
 import { loadCalendarSettings } from '../services/calendarSettings.js';
@@ -41,19 +42,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.insertBefore(sidebarElement, mainElement);
   }
 
-  // 🔹 Загружаем настройки календаря перед инициализацией
-  window.calendarSettings = {}; // Глобальный объект для настроек календаря
+  loadUserColors((colorMap) => {
+    // 🔹 Загружаем настройки календаря перед инициализацией
+    window.calendarSettings = {}; // Глобальный объект для настроек календаря
 
-  loadCalendarSettings((settings) => {
-    window.calendarSettings = settings; // Сохраняем настройки
-    console.log('✅ Настройки календаря загружены:', window.calendarSettings);
+    loadCalendarSettings((settings) => {
+      window.calendarSettings = settings; // Сохраняем настройки
+      console.log('✅ Настройки календаря загружены:', window.calendarSettings);
 
-    // Инициализируем календарь с полученными настройками
-    const calendar = initCalendar(window.calendarSettings);
-    window.calendar = calendar;
+      // Инициализируем календарь с полученными настройками
+      const calendar = initCalendar(window.calendarSettings, colorMap);
+      window.calendar = calendar;
 
-    // Загружаем цвета пользователей и затем задачи
-    loadUserColors((colorMap) => {
+      // Загружаем цвета пользователей и затем задачи
+
       console.log('🚀 Загружаем все задачи...');
       loadAllTasks((tasks, taskErr) => {
         if (taskErr) {
@@ -70,15 +72,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
           console.log(`🎨 Цвет для ID ${executorId}:`, color); // Проверяем в логах
 
+          const isAllDay = Boolean(
+            t.xmlId === 'ALLDAY', // Начало и конец в один день
+          );
+
+          console.log(`✅ Задача ${t.id} ${t.title}: allDay=${isAllDay}`);
+
           return {
             id: t.id,
             title: t.title || 'Без названия',
             start: t.startDatePlan,
             end: t.endDatePlan,
-            allDay:
-              t.allDay === true ||
-              t.extendedProps?.allDay === true ||
-              (!t.startDatePlan && !t.endDatePlan),
+            allDay: isAllDay ? true : false, // Принудительно ставим true/false
             backgroundColor: color,
             borderColor: color,
             eventColor: color,
@@ -89,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
               deadline: t.deadline,
               color: color,
               comment: t.description || '',
-              allDay: t.allDay === true || (!t.startDatePlan && !t.endDatePlan), // Дублируем в extendedProps
+              allDay: isAllDay ? true : false, // Принудительно ставим true/false
             },
           };
         });
@@ -125,9 +130,11 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log(`🔍 Клик по меню: ${action}`);
 
     if (action === 'Пользователи') {
-      showUserSettingsModal();
+      showUserSettingsModal(window.calendar);
     } else if (action === 'Календарь') {
-      showCalendarSettingsModal(); // Вызов модального окна настроек календаря
+      showCalendarSettingsModal();
+    } else if (action === 'Незапланированные задачи') {
+      showTaskPlanningModal();
     }
   });
 

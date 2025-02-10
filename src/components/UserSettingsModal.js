@@ -3,12 +3,11 @@ import { createModal } from './Modal.js';
 /**
  * Открывает модальное окно настроек пользователей.
  */
-export function showUserSettingsModal() {
+export function showUserSettingsModal(calendar) {
   const title = 'Настройки пользователей';
 
   const content = `
     <div class="user-settings-container">
-      <!-- Поле поиска -->
       <div class="flex items-center gap-2 mb-4">
         <input 
           type="text" 
@@ -18,10 +17,8 @@ export function showUserSettingsModal() {
         />
       </div>
 
-      <!-- Список пользователей -->
       <div id="user-settings-list" class="max-h-80 overflow-auto border-t border-b"></div>
 
-      <!-- Кнопки -->
       <div class="flex justify-end gap-4 mt-6">
         <button id="cancel-user-settings" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-600">
           Отмена
@@ -35,16 +32,13 @@ export function showUserSettingsModal() {
 
   createModal(title, content, { width: '600px' });
 
-  // Кнопка "Отмена"
   document.getElementById('cancel-user-settings')?.addEventListener('click', () => {
     document.getElementById('modal-container')?.remove();
   });
 
-  // Получаем контейнер для списка пользователей
   const userListContainer = document.getElementById('user-settings-list');
   if (!userListContainer) return;
 
-  // Загружаем список пользователей и цвета
   BX24.callMethod('user.get', {}, (res) => {
     if (res.error()) {
       console.error('Ошибка загрузки пользователей:', res.error());
@@ -87,12 +81,20 @@ export function showUserSettingsModal() {
 
           userListContainer.appendChild(userRow);
         });
+
+        // Добавляем обработчик изменения цвета
+        document.querySelectorAll('.color-picker').forEach((picker) => {
+          picker.addEventListener('input', (e) => {
+            const userId = e.target.getAttribute('data-user-id');
+            const newColor = e.target.value;
+            colorMap[userId] = newColor;
+            updateEventColors(calendar, userId, newColor);
+          });
+        });
       }
 
-      // Изначально рендерим весь список
       renderUserList();
 
-      // Фильтрация пользователей
       document.getElementById('userSearch')?.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
         const filtered = users.filter((user) => {
@@ -104,7 +106,6 @@ export function showUserSettingsModal() {
     });
   });
 
-  // Сохранение цветов
   document.getElementById('save-user-settings')?.addEventListener('click', () => {
     const colorPickers = document.querySelectorAll('.color-picker');
     const newColors = {};
@@ -122,4 +123,17 @@ export function showUserSettingsModal() {
       }
     });
   });
+}
+
+/**
+ * Обновляет цвет задач конкретного пользователя в календаре.
+ */
+function updateEventColors(calendar, userId, newColor) {
+  calendar.getEvents().forEach((event) => {
+    if (String(event.extendedProps.executor) === String(userId)) {
+      event.setProp('backgroundColor', newColor);
+      event.setProp('borderColor', newColor);
+    }
+  });
+  console.log(`🔄 Цвет задач пользователя ${userId} обновлен на ${newColor}`);
 }

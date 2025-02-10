@@ -3,9 +3,10 @@ import { getUsers } from '../services/userService.js';
 import { createModal } from './Modal.js';
 
 export function showEventForm(date, eventData, options = {}) {
+  const colorMap = options.colorMap || {}; // Получаем переданную карту цветов
   const isEditMode = !!eventData;
   // Проверяем флаг "Весь день"
-  const allDay = options.allDay || eventData?.extendedProps?.allDay || false;
+  const allDay = options.allDay === true || eventData?.extendedProps?.allDay === true;
 
   const settings = window.calendarSettings || { slotMinTime: '08:00', slotMaxTime: '18:00' };
 
@@ -241,7 +242,10 @@ export function showEventForm(date, eventData, options = {}) {
       start: eventStart,
       end: eventEnd,
       deadline,
+      allDay: allDay, // Приводим к формату Bitrix
     };
+
+    console.log('Смотрим на отправленный массив данных для задачи:', taskData);
 
     if (isNew) {
       // Создание задачи
@@ -251,17 +255,23 @@ export function showEventForm(date, eventData, options = {}) {
         } else {
           if (window.calendar && res?.task?.id) {
             const realId = res.task.id;
+            const newTaskColor = colorMap[executor] || '#cccccc'; // Определяем цвет
+            console.log('🚀 Новый цвет задачи:', newTaskColor);
             window.calendar.addEvent({
               id: realId,
               title,
               start: eventStart,
               end: eventEnd,
+              allDay,
+              backgroundColor: newTaskColor,
+              borderColor: newTaskColor,
               extendedProps: {
                 comment,
                 deadline,
                 executor,
                 bitrix24Id: realId,
                 allDay,
+                color: newTaskColor,
               },
             });
             console.log('✅ Задача создана:', realId);

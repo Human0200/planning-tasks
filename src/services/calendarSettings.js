@@ -6,14 +6,23 @@ export function loadCalendarSettings(callback) {
         slotMinTime: '09:00',
         slotMaxTime: '18:00',
         slotDuration: '01:00:00',
-      }); // Дефолтные значения
+        allDaySlot: true, // Дефолтное значение
+      });
     } else {
-      const settings = res.data() || {};
+      let settings = res.data() || '{}'; // Защита от null
+      try {
+        settings = JSON.parse(settings); // Преобразуем строку в объект
+      } catch (e) {
+        console.error('Ошибка парсинга настроек календаря:', e);
+        settings = {}; // Если ошибка парсинга, используем пустой объект
+      }
+
       console.log('✅ Загруженные настройки календаря:', settings);
       callback({
         slotMinTime: settings.slotMinTime || '08:00',
         slotMaxTime: settings.slotMaxTime || '20:00',
         slotDuration: settings.slotDuration || '01:00:00',
+        allDaySlot: settings.allDaySlot !== undefined ? settings.allDaySlot : true, // Загружаем флаг
       });
     }
   });
