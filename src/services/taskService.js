@@ -6,6 +6,7 @@
  * @param {Function} callback - Функция, вызываемая после завершения запроса.
  */
 export function createTask(taskData, callback) {
+  console.log('📝 Попытка создания задачи:', taskData);
   BX24.callMethod(
     'tasks.task.add',
     {
@@ -14,7 +15,7 @@ export function createTask(taskData, callback) {
         DESCRIPTION: taskData.comment || null || '',
         RESPONSIBLE_ID: taskData.executor, // ID исполнителя (реальный ID, полученный через userService)
         START_DATE_PLAN: taskData.start,
-        END_DATЕ_PLAN: taskData.end,
+        END_DATE_PLAN: taskData.end,
         DEADLINE: taskData.deadline || null || '',
         XML_ID: taskData.allDay ? 'ALLDAY' : null, // ✅ Только для "Весь день"
         // Дополнительные поля, если нужны (приоритет, теги и т.д.)
@@ -49,6 +50,7 @@ export function updateTask(taskId, taskData, callback) {
         START_DATE_PLAN: taskData.start,
         END_DATE_PLAN: taskData.end,
         DEADLINE: taskData.deadline,
+        TIME_ESTIMATE: taskData.timeEstimate || null,
       },
     },
     (result) => {
