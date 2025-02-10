@@ -1,7 +1,7 @@
 export function Sidebar() {
   const sidebar = document.createElement('aside');
   sidebar.className =
-    'sidebar w-16 bg-gray-900 text-white h-screen  left-0 top-0 flex flex-col items-center p-2 shadow-lg transition-all duration-300 ease-in-out overflow-hidden';
+    'sidebar w-16 bg-gray-900 text-white h-screen left-0 top-0 flex flex-col items-center p-2 shadow-lg transition-all duration-300 ease-in-out overflow-hidden';
 
   sidebar.innerHTML = `
     <!-- Кнопка управления меню -->
@@ -20,6 +20,7 @@ export function Sidebar() {
         )}
         ${createMenuItem('settings', 'Настройки')}
         ${createMenuItem('group', 'Пользователи')}
+        ${createMenuItem('smart_toy', 'Модель ИИ', 'data-menu-action="Модель ИИ"')}
       </ul>
     </nav>
   `;
@@ -31,13 +32,13 @@ export function Sidebar() {
   return sidebar;
 }
 
-// Функция для создания пунктов меню
-function createMenuItem(icon, text) {
+// Функция для создания пунктов меню (если её не вынесли отдельно)
+function createMenuItem(icon, text, extraAttributes = '') {
   return `
     <li class="menu-item flex items-center w-full">
       <a href="#" 
          class="flex items-center p-3 rounded-lg hover:bg-gray-700 transition w-full"
-         data-menu-action="${text}"
+         ${extraAttributes}
       >
         <span class="material-icons text-xl menu-icon">${icon}</span>
         <span class="ml-3 menu-text opacity-0 invisible transition-opacity duration-300">${text}</span>

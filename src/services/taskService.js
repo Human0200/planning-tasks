@@ -96,7 +96,7 @@ export function loadAllTasks(callback) {
       batch[`page_${i}`] = [
         'tasks.task.list',
         {
-          FILTER: {}, // Здесь можно добавить фильтрацию
+          filter: { '>STATUS': 4 }, // Здесь можно добавить фильтрацию
           SELECT: ['ID', 'TITLE', 'RESPONSIBLE_ID', 'START_DATE_PLAN', 'END_DATE_PLAN', 'DEADLINE'],
           start: startPosition,
         },
@@ -153,9 +153,10 @@ export function loadUnplannedTasks(callback) {
       batch[`page_${i}`] = [
         'tasks.task.list',
         {
-          FILTER: {
+          filter: {
             '!START_DATE_PLAN': null,
             '!END_DATE_PLAN': null,
+            '>STATUS': 4,
           },
           SELECT: [
             'ID',

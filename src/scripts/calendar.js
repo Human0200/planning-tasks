@@ -48,6 +48,25 @@ export function initCalendar(settings, colorMap) {
 
     contentClassNames: ['bg-white', 'shadow-lg', 'rounded-lg', 'p-4'],
     buttonClassNames: ['bg-blue-500', 'text-white', 'px-4', 'py-2', 'rounded-md', 'shadow'],
+    // Настройка отображения события (по умолчанию выводим время, заголовок и "Ответственный")
+    eventContent: function (arg) {
+      const timeText = arg.timeText;
+      const title = arg.event.title;
+      const responsible = arg.event.extendedProps.responsibleName || '';
+
+      let html = `<div class="fc-event-inner force-inline-content">`;
+      if (timeText) {
+        html += `<div class="fc-event-time force-inline-content">${timeText}</div>`;
+      }
+      // Здесь меняем класс для заголовка:
+      html += `<div class="fc-event-title wrap-text">${title}</div>`;
+      if (responsible) {
+        // Можно также заменить или добавить для подзаголовка:
+        html += `<div class="fc-event-subtitle wrap-text">Ответственный: ${responsible}</div>`;
+      }
+      html += `</div>`;
+      return { html };
+    },
 
     // При клике по ячейке для создания новой задачи
     dateClick: (info) => {

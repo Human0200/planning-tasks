@@ -1,8 +1,10 @@
+import { showAIModelSettingsModal } from '../components/AIModelSettingsModal.js';
 import { showCalendarSettingsModal } from '../components/CalendarSettingsModal.js'; // Добавляем импорт
 import { Sidebar } from '../components/Sidebar.js';
 import { showTaskPlanningModal } from '../components/TaskPlanningModal.js';
 import { UserInfo } from '../components/UserInfo.js';
 import { showUserSettingsModal } from '../components/UserSettingsModal.js';
+import { testAiModel } from '../services/aiClient.js';
 import { loadCalendarSettings } from '../services/calendarSettings.js';
 import { loadAllTasks } from '../services/taskService.js';
 import { initCalendar } from './calendar.js';
@@ -91,6 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
             classNames: [`color-${executorId}`], // Добавляем класс для стилизации
             extendedProps: {
               executor: executorId,
+              responsibleName:
+                t.responsibleName || (t.responsible ? t.responsible.name : 'Не указан'),
               deadline: t.deadline,
               color: color,
               comment: t.description || '',
@@ -135,6 +139,8 @@ document.addEventListener('DOMContentLoaded', () => {
       showCalendarSettingsModal();
     } else if (action === 'Незапланированные задачи') {
       showTaskPlanningModal();
+    } else if (action === 'Модель ИИ') {
+      showAIModelSettingsModal();
     }
   });
 
@@ -157,6 +163,16 @@ document.addEventListener('DOMContentLoaded', () => {
       );
     }
   }, 1000); // Задержка 200 мс для завершения рендеринга
+
+  // В конце
+  testAiModel()
+    .then((answer) => {
+      console.log('Тестовый вызов к AI прошёл. Ответ:', answer);
+      // Можно alert(...) если хотите в интерфейсе показать
+    })
+    .catch((err) => {
+      console.error('Ошибка в тестовом вызове AI:', err);
+    });
 
   console.log('✅ Календарь запущен');
 });

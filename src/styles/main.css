@@ -185,3 +185,27 @@ main {
   --tw-gradient-to: transparent !important;
   --tw-gradient-stops: transparent !important;
 }
+
+/* Этот класс применяется, если содержимое не помещается и нужно его отобразить в одну строку */
+.force-inline-content {
+  display: flex; /* Обеспечиваем флекс-контейнер */
+  flex-direction: row; /* Располагаем элементы по горизонтали */
+  align-items: center; /* Выравниваем по центру по вертикали */
+  flex-wrap: nowrap; /* Не допускаем перенос элементов */
+  white-space: nowrap; /* Не переносим текст на новую строку */
+  overflow: hidden; /* Обрезаем излишки, если они есть */
+  text-overflow: ellipsis; /* Добавляем многоточие при переполнении */
+}
+
+.force-inline-content > div {
+  margin-right: 6px; /* Отступ между элементами */
+  overflow: hidden;
+  flex-shrink: 0;
+  text-overflow: ellipsis;
+}
+
+.wrap-text {
+  white-space: normal; /* Позволяет перенос текста */
+  overflow: visible; /* Не обрезает содержимое */
+  word-wrap: break-word; /* Перенос длинных слов */
+}
