@@ -1,6 +1,8 @@
+import { askAiReport } from '../services/aiClient.js';
 import { createTask, deleteTask, updateTask } from '../services/taskService.js';
 import { getUsers } from '../services/userService.js';
 import { createModal } from './Modal.js';
+import { showAiReportModal } from './showAiReportModal.js';
 
 export function showEventForm(date, eventData, options = {}) {
   const colorMap = options.colorMap || {}; // Получаем переданную карту цветов
@@ -139,6 +141,21 @@ export function showEventForm(date, eventData, options = {}) {
         rows="3"
         placeholder="Дополнительная информация"
       >${commentValue}</textarea>
+
+         <!-- КНОПКА ФОРМИРОВАНИЯ ОТЧЁТА ПОД КОММЕНТАРИЕМ, но ДО основных кнопок -->
+    ${
+      !isNew
+        ? `<div class="mb-4 flex justify-end">
+             <button
+               type="button"
+               id="generate-report"
+               class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded hover:bg-gray-100"
+             >
+               Сформировать отчёт
+             </button>
+           </div>`
+        : ''
+    }
 
       <div class="flex justify-end gap-4">
         <button
@@ -296,6 +313,54 @@ export function showEventForm(date, eventData, options = {}) {
 
     modalInstance.close();
   });
+
+  function shorten(text, maxLen) {
+    if (!text) return '';
+    if (text.length <= maxLen) {
+      return text;
+    }
+    return text.slice(0, maxLen - 3) + '...';
+  }
+
+  if (!isNew) {
+    const reportBtn = document.getElementById('generate-report');
+    if (reportBtn) {
+      reportBtn.addEventListener('click', async () => {
+        // 1. Считываем исходные поля
+        let titleField = document.getElementById('event-title').value.trim();
+        let commentField = document.getElementById('event-comment').value.trim();
+
+        // 2. Сокращаем их, чтобы не превышать лимит
+        //    (Например, 50 символов для названия, 100 для комментария)
+        titleField = shorten(titleField, 50);
+        commentField = shorten(commentField, 100);
+
+        // 3. Формируем промпт (сырой)
+        let rawPrompt = `
+Составь краткий отчёт по задаче:
+Название: "${titleField}"
+Описание: "${commentField}"
+Напиши отчёт на русском, в понятном виде, максимум 10 предложений.
+`;
+
+        // 4. И ещё раз подрезаем сам промпт, чтобы он не был длиннее 256 символов
+        const finalPrompt = shorten(rawPrompt, 256);
+        console.log('📝 Окончательный промпт для AI:', finalPrompt);
+
+        try {
+          // 5. Вызываем функцию AI
+          const aiAnswer = await askAiReport(finalPrompt);
+          console.log('Ответ AI:', aiAnswer);
+
+          // 6. Отображаем результат
+          showAiReportModal(aiAnswer);
+        } catch (err) {
+          console.error('Ошибка при запросе отчёта:', err);
+          alert('Ошибка при формировании отчёта');
+        }
+      });
+    }
+  }
 
   // Удаление задачи
   if (!isNew) {

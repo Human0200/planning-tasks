@@ -17,6 +17,39 @@ export function UserInfo(onUserChange) {
 
   const selectEl = userInfoContainer.querySelector('#user-select');
 
+  // ▼▼▼ Динамические чекбоксы внутри того же контейнера ▼▼▼
+  const filterContainer = document.createElement('div');
+  filterContainer.className = 'flex items-center gap-4';
+
+  filterContainer.innerHTML = `
+    <label class="inline-flex items-center gap-1">
+      <input type="checkbox" id="hideNoTimeEstimate" class="cursor-pointer" />
+      <span>Убрать задачи без планируемого времени</span>
+    </label>
+    <label class="inline-flex items-center gap-1">
+      <input type="checkbox" id="hideNoDeadline" class="cursor-pointer" />
+      <span>Убрать задачи без крайнего срока</span>
+    </label>
+  `;
+  // Добавляем в основной контейнер (рядом с select)
+  userInfoContainer.appendChild(filterContainer);
+
+  // Вешаем обработчики на чекбоксы:
+  const chkTimeEstimate = filterContainer.querySelector('#hideNoTimeEstimate');
+  const chkDeadline = filterContainer.querySelector('#hideNoDeadline');
+
+  // При клике на чекбокс – вызываем фильтрацию по текущему выбранному пользователю
+  [chkTimeEstimate, chkDeadline].forEach((chk) => {
+    chk.addEventListener('change', () => {
+      // Если используете filterEvents глобально, передавайте текущего пользователя:
+      const currentUserValue = $(selectEl).val();
+      if (typeof window.filterEvents === 'function') {
+        window.filterEvents(currentUserValue);
+      }
+    });
+  });
+  // ▲▲▲ Конец блока чекбоксов ▲▲▲
+
   // Заполняем селект реальными данными пользователей через вызов BX24 API (getUsers)
   getUsers((users) => {
     selectEl.innerHTML = '';

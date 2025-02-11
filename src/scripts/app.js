@@ -4,7 +4,6 @@ import { Sidebar } from '../components/Sidebar.js';
 import { showTaskPlanningModal } from '../components/TaskPlanningModal.js';
 import { UserInfo } from '../components/UserInfo.js';
 import { showUserSettingsModal } from '../components/UserSettingsModal.js';
-import { testAiModel } from '../services/aiClient.js';
 import { loadCalendarSettings } from '../services/calendarSettings.js';
 import { loadAllTasks } from '../services/taskService.js';
 import { initCalendar } from './calendar.js';
@@ -164,15 +163,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 1000); // Задержка 200 мс для завершения рендеринга
 
-  // В конце
-  testAiModel()
-    .then((answer) => {
-      console.log('Тестовый вызов к AI прошёл. Ответ:', answer);
-      // Можно alert(...) если хотите в интерфейсе показать
-    })
-    .catch((err) => {
-      console.error('Ошибка в тестовом вызове AI:', err);
+  window.filterEvents = function (selectedUser) {
+    if (!window.calendar) return;
+
+    const hideNoTimeEstimate = document.getElementById('hideNoTimeEstimate')?.checked;
+    const hideNoDeadline = document.getElementById('hideNoDeadline')?.checked;
+
+    window.calendar.getEvents().forEach((event) => {
+      let shouldShow = true;
+
+      // фильтр по пользователю
+      if (selectedUser !== 'all') {
+        if (String(event.extendedProps.executor) !== String(selectedUser)) {
+          shouldShow = false;
+        }
+      }
+
+      // Если стоит галочка "убрать без планируемого времени"
+      if (hideNoTimeEstimate) {
+        if (!event.extendedProps.timeEstimate) {
+          shouldShow = false;
+        }
+      }
+
+      // Если стоит галочка "убрать без крайнего срока"
+      if (hideNoDeadline) {
+        if (!event.extendedProps.deadline) {
+          shouldShow = false;
+        }
+      }
+
+      // Применяем к событию
+      event.setProp('display', shouldShow ? 'auto' : 'none');
     });
+  };
 
   console.log('✅ Календарь запущен');
 });

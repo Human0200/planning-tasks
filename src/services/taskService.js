@@ -96,7 +96,66 @@ export function loadAllTasks(callback) {
       batch[`page_${i}`] = [
         'tasks.task.list',
         {
-          filter: { '>STATUS': 4 }, // Здесь можно добавить фильтрацию
+          filter: { '!TIME_ESTIMATE': null }, // Здесь можно добавить фильтрацию
+          SELECT: ['ID', 'TITLE', 'RESPONSIBLE_ID', 'START_DATE_PLAN', 'END_DATE_PLAN', 'DEADLINE'],
+          start: startPosition,
+        },
+      ];
+    }
+
+    BX24.callBatch(batch, (res) => {
+      let hasMore = false;
+
+      for (let key in res) {
+        if (res[key].error()) {
+          console.error(`❌ Ошибка загрузки задач (${key}):`, res[key].error());
+          callback(null, res[key].error());
+          return;
+        }
+
+        const data = res[key].data();
+        if (data && Array.isArray(data.tasks) && data.tasks.length > 0) {
+          console.log(`📥 Загружены ${data.tasks.length} задач(и) с ${key}`);
+
+          data.tasks.forEach((task) => {
+            tasks.set(task.id, task);
+          });
+
+          // Если данные пришли, скорее всего есть еще задачи
+          hasMore = true;
+        }
+      }
+
+      if (hasMore) {
+        fetchBatch(start + maxBatch * batchSize);
+      } else {
+        console.log(`✅ Все задачи загружены. Всего задач: ${tasks.size}`);
+        callback(Array.from(tasks.values()), null);
+      }
+    });
+  }
+
+  fetchBatch(startIndex);
+}
+
+export function loadAllTasksforunPlanned(callback) {
+  let tasks = new Map();
+  let batchSize = 50; // Количество задач на одну страницу
+  let maxBatch = 5; // Количество страниц в одном batch-запросе
+  let startIndex = 0;
+
+  function fetchBatch(start) {
+    let batch = {};
+    console.log(`📡 Запрос batch с ${maxBatch} страниц, начиная с ${start}`);
+
+    for (let i = 0; i < maxBatch; i++) {
+      let startPosition = start + i * batchSize;
+      batch[`page_${i}`] = [
+        'tasks.task.list',
+        {
+          filter: {
+            '<STATUS': 4,
+          }, // Здесь можно добавить фильтрацию
           SELECT: ['ID', 'TITLE', 'RESPONSIBLE_ID', 'START_DATE_PLAN', 'END_DATE_PLAN', 'DEADLINE'],
           start: startPosition,
         },
@@ -154,9 +213,7 @@ export function loadUnplannedTasks(callback) {
         'tasks.task.list',
         {
           filter: {
-            '!START_DATE_PLAN': null,
-            '!END_DATE_PLAN': null,
-            '>STATUS': 4,
+            '<STATUS': 4,
           },
           SELECT: [
             'ID',
