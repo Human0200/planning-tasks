@@ -162,6 +162,7 @@ main {
   border-radius: 0.25rem; /* соответствует Tailwind: rounded */
   width: 550px !important;
   height: 40px !important;
+  z-index: 99999 !important;
 }
 
 /* Выравнивание текста внутри контейнера */

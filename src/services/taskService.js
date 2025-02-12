@@ -18,6 +18,8 @@ export function createTask(taskData, callback) {
         END_DATE_PLAN: taskData.end,
         DEADLINE: taskData.deadline || null || '',
         XML_ID: taskData.allDay ? 'ALLDAY' : null, // ✅ Только для "Весь день"
+        GROUP_ID: taskData.groupId, // <-- тут
+        TIME_ESTIMATE: taskData.timeEstimate || null,
         // Дополнительные поля, если нужны (приоритет, теги и т.д.)
       },
     },
@@ -271,4 +273,15 @@ export function loadUnplannedTasks(callback) {
   }
 
   fetchBatch(startIndex);
+}
+
+export function getProjects(callback) {
+  BX24.callMethod('sonet_group.get', {}, (res) => {
+    if (res.error()) {
+      console.error('Ошибка загрузки проектов:', res.error());
+      callback([]);
+    } else {
+      callback(res.data() || []);
+    }
+  });
 }

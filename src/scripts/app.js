@@ -71,13 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const executorId = t.responsibleId;
           const color = String(colorMap[executorId] || '#cccccc'); // Принудительно приводим к строке
 
-          console.log(`🎨 Цвет для ID ${executorId}:`, color); // Проверяем в логах
-
           const isAllDay = Boolean(
             t.xmlId === 'ALLDAY', // Начало и конец в один день
           );
-
-          console.log(`✅ Задача ${t.id} ${t.title}: allDay=${isAllDay}`);
 
           return {
             id: t.id,
@@ -97,6 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
               deadline: t.deadline,
               color: color,
               comment: t.description || '',
+              timeEstimate: t.timeEstimate || null,
+              groupId: t.groupId,
               allDay: isAllDay ? true : false, // Принудительно ставим true/false
             },
           };
@@ -161,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
         '❌ Ошибка: Не удалось вставить UserInfo — контейнер или элемент не определен!',
       );
     }
-  }, 1000); // Задержка 200 мс для завершения рендеринга
+  }, 2000); // Задержка 200 мс для завершения рендеринга
 
   window.filterEvents = function (selectedUser) {
     if (!window.calendar) return;

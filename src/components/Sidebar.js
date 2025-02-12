@@ -11,14 +11,13 @@ export function Sidebar() {
 
     <nav class="w-full flex-1">
       <ul class="space-y-2 w-full">
-        ${createMenuItem('dashboard', 'Главная')}
-        ${createMenuItem('event', 'Календарь', 'data-menu-action="Календарь"')}
+        ${createMenuItem('event', 'Настройки календаря', 'data-menu-action="Календарь"')}
         ${createMenuItem(
           'assignment',
           'Незапланированные задачи',
           'data-menu-action="Незапланированные задачи"',
         )}
-        ${createMenuItem('group', 'Пользователи', 'data-menu-action="Пользователи"')}
+        ${createMenuItem('group', 'Настройки пользователей', 'data-menu-action="Пользователи"')}
         ${createMenuItem('smart_toy', 'Модель ИИ', 'data-menu-action="Модель ИИ"')}
       </ul>
     </nav>

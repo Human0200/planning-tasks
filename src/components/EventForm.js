@@ -1,5 +1,5 @@
 import { askAiReport } from '../services/aiClient.js';
-import { createTask, deleteTask, updateTask } from '../services/taskService.js';
+import { createTask, deleteTask, getProjects, updateTask } from '../services/taskService.js';
 import { getUsers } from '../services/userService.js';
 import { createModal } from './Modal.js';
 import { showAiReportModal } from './showAiReportModal.js';
@@ -42,9 +42,18 @@ export function showEventForm(date, eventData, options = {}) {
   }
 
   const titleValue = eventData?.title || '';
-  const deadlineValue = eventData?.extendedProps?.deadline || '';
-  const commentValue = eventData?.extendedProps?.comment || '';
+  const deadlineValue = eventData?.extendedProps?.deadline
+    ? eventData.extendedProps.deadline.split('T')[0]
+    : '';
 
+  const commentValue = eventData?.extendedProps?.comment || '';
+  const groupIdValue =
+    isEditMode && eventData?.extendedProps?.groupId ? eventData.extendedProps.groupId : '';
+
+  const timeEstimateValue =
+    isEditMode && eventData?.extendedProps?.timeEstimate
+      ? (eventData.extendedProps.timeEstimate / 3600).toFixed(2)
+      : '';
   const isNew = !isEditMode;
   const submitButtonText = isNew ? 'Создать' : 'Сохранить изменения';
   const modalTitle = isNew ? 'Создать задачу' : 'Редактировать задачу';
@@ -125,6 +134,7 @@ export function showEventForm(date, eventData, options = {}) {
       </div>
 
       ${executorSelectHTML}
+      
 
       <label class="block text-sm font-medium text-gray-700">Крайний срок</label>
       <input
@@ -133,6 +143,22 @@ export function showEventForm(date, eventData, options = {}) {
         class="border rounded w-full p-2 mb-4"
         value="${deadlineValue}"
       >
+
+          <!-- Новый блок: Проект -->
+    <label class="block text-sm font-medium text-gray-700">Проект (Группа Bitrix24)</label>
+    <div id="project-container" class="mb-4"></div>
+    
+    <!-- Новый блок: Планируемое время (часы) -->
+    <label class="block text-sm font-medium text-gray-700">Планируемое время (часы)</label>
+    <input
+      type="number"
+      step="0.5"
+      min="0"
+      id="event-time-estimate"
+      class="border rounded w-full p-2 mb-4"
+      value="${timeEstimateValue}"
+      placeholder="Например, 2.5"
+    >
 
       <label class="block text-sm font-medium text-gray-700">Комментарий</label>
       <textarea
@@ -172,7 +198,49 @@ export function showEventForm(date, eventData, options = {}) {
     </form>
   `;
 
-  const modalInstance = createModal(modalTitle, formContent, { width: '600px' });
+  const modalInstance = createModal(modalTitle, formContent, { width: '600px', maxHeight: '80vh' });
+
+  // Загрузка проектов (групп)
+  const projContainer = document.getElementById('project-container');
+  if (projContainer) {
+    const projectSelect = document.createElement('select');
+    projectSelect.id = 'event-project';
+    // Применяем те же классы, что и у селекта исполнителей
+    projectSelect.className = 'custom-executor border rounded w-full p-2 mb-4';
+
+    const defOpt = document.createElement('option');
+    defOpt.value = '';
+    defOpt.textContent = 'Выберите проект';
+    projectSelect.appendChild(defOpt);
+    projContainer.appendChild(projectSelect);
+
+    // Загрузка списка проектов
+    getProjects((groups) => {
+      console.log('Загружены проекты:', groups);
+      groups.forEach((g) => {
+        const opt = document.createElement('option');
+        opt.value = g.ID;
+        opt.textContent = g.NAME;
+        projectSelect.appendChild(opt);
+      });
+      // Если редактирование и уже есть groupId, подставляем его:
+      if (isEditMode && groupIdValue) {
+        projectSelect.value = String(groupIdValue);
+      }
+      // Инициализация Select2 для проекта
+      if ($.fn.select2) {
+        $(projectSelect).select2({
+          placeholder: 'Выберите проект',
+          allowClear: true,
+          width: 'style',
+          dropdownParent: $(modalInstance.modalElement),
+        });
+        if (isEditMode && groupIdValue) {
+          $(projectSelect).val(String(groupIdValue)).trigger('change');
+        }
+      }
+    });
+  }
 
   // Кнопка "Отмена"
   document.getElementById('cancel-event').addEventListener('click', () => {
@@ -208,6 +276,7 @@ export function showEventForm(date, eventData, options = {}) {
             placeholder: 'Выберите исполнителя',
             allowClear: true,
             width: 'style',
+            dropdownParent: $(modalInstance.modalElement),
           });
           if (isEditMode && eventData?.extendedProps?.executor) {
             $(selectEl).val(eventData.extendedProps.executor).trigger('change');
@@ -226,6 +295,11 @@ export function showEventForm(date, eventData, options = {}) {
     const finishDateVal = document.getElementById('event-finish-date').value;
     const deadline = document.getElementById('event-deadline').value;
     const comment = document.getElementById('event-comment').value.trim();
+    const projectSelect = document.getElementById('event-project');
+    const groupId = projectSelect?.value ? parseInt(projectSelect.value, 10) : null;
+    const timeEstInput = document.getElementById('event-time-estimate');
+    const hours = parseFloat(timeEstInput.value) || 0;
+    const timeEstimateSec = Math.round(hours * 3600);
 
     let executor = '';
     if (userFilterValue === 'all') {
@@ -257,6 +331,8 @@ export function showEventForm(date, eventData, options = {}) {
       end: eventEnd,
       deadline,
       allDay: allDay, // Приводим к формату Bitrix
+      timeEstimate: timeEstimateSec,
+      groupId,
     };
 
     console.log('Смотрим на отправленный массив данных для задачи:', taskData);
@@ -286,6 +362,8 @@ export function showEventForm(date, eventData, options = {}) {
                 bitrix24Id: realId,
                 allDay,
                 color: newTaskColor,
+                groupId,
+                timeEstimate: timeEstimateSec,
               },
             });
             console.log('✅ Задача создана:', realId);
@@ -306,6 +384,8 @@ export function showEventForm(date, eventData, options = {}) {
           eventData.setExtendedProp('deadline', deadline);
           eventData.setExtendedProp('executor', executor);
           eventData.setExtendedProp('allDay', allDay);
+          eventData.setExtendedProp('groupId', groupId);
+          eventData.setExtendedProp('timeEstimate', timeEstimateSec);
           console.log('✅ Задача обновлена:', taskId);
         }
       });

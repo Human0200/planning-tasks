@@ -14,13 +14,19 @@ export function createModal(title, content, options = {}) {
   // Создаём модальное окно (без backdrop)
   const modal = document.createElement('div');
   modal.classList.add('draggable-modal', 'bg-white', 'rounded-lg', 'shadow-lg', 'p-6', 'relative');
+
   modal.style.width = options.width || '500px';
   modal.style.position = 'fixed';
-  // Центрируем окно на экране
   modal.style.top = '50%';
   modal.style.left = '50%';
   modal.style.transform = 'translate(-50%, -50%)';
-  modal.style.zIndex = 9999; // Поверх остальных элементов
+  modal.style.zIndex = 9999;
+
+  // ▼ добавляем
+  if (options.maxHeight) {
+    modal.style.maxHeight = options.maxHeight;
+    modal.style.overflowY = 'auto';
+  }
 
   // Создаём шапку (header) модального окна, которая будет использоваться для перетаскивания
   const header = document.createElement('div');
@@ -42,6 +48,12 @@ export function createModal(title, content, options = {}) {
   const closeButton = document.createElement('button');
   closeButton.classList.add('modal-close', 'text-gray-500', 'hover:text-gray-700');
   closeButton.innerHTML = '&times;';
+
+  // Останавливаем всплытие событий при нажатии на крестик, чтобы не запускался drag
+  closeButton.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+  });
 
   header.appendChild(headerTitle);
   header.appendChild(closeButton);
@@ -70,12 +82,19 @@ export function createModal(title, content, options = {}) {
 
   header.addEventListener('mousedown', (e) => {
     isDragging = true;
-    // Получаем текущие координаты окна
+    // Получаем текущий bounding rect модального окна
     const rect = modal.getBoundingClientRect();
+
+    // Фиксируем текущее положение окна в пикселях,
+    // чтобы после удаления transform окно осталось на месте.
+    modal.style.left = rect.left + 'px';
+    modal.style.top = rect.top + 'px';
+    // Убираем transform – теперь позиция задается через left и top
+    modal.style.transform = '';
+
+    // Пересчитываем смещение курсора относительно верхнего левого угла окна
     offsetX = e.clientX - rect.left;
     offsetY = e.clientY - rect.top;
-    // Убираем трансформацию для корректного позиционирования при перетаскивании
-    modal.style.transform = '';
   });
 
   document.addEventListener('mousemove', (e) => {
