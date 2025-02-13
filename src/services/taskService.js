@@ -285,3 +285,79 @@ export function getProjects(callback) {
     }
   });
 }
+
+export function loadAllTasksIncrementally(onComplete, onBatchLoaded, onError) {
+  // onComplete – вызывается по завершении загрузки всех задач (как раньше)
+  // onBatchLoaded – вызывается для каждого пакета задач (новый параметр)
+  // onError – вызывается при ошибке
+
+  let tasks = new Map();
+  const batchSize = 50; // Количество задач на одну страницу
+  const maxBatch = 5; // Количество страниц в одном batch-запросе
+  let startIndex = 0;
+
+  function fetchBatch(start) {
+    let batch = {};
+    console.log(`📡 Запрос batch с ${maxBatch} страниц, начиная с ${start}`);
+    for (let i = 0; i < maxBatch; i++) {
+      let startPosition = start + i * batchSize;
+      batch[`page_${i}`] = [
+        'tasks.task.list',
+        {
+          filter: { '!TIME_ESTIMATE': null },
+          order: { CREATED_DATE: 'DESC' }, // Сортируем по дате создания (новейшие сначала)
+          SELECT: [
+            'ID',
+            'TITLE',
+            'RESPONSIBLE_ID',
+            'START_DATE_PLAN',
+            'END_DATE_PLAN',
+            'DEADLINE',
+            'CREATED_DATE',
+            'DESCRIPTION',
+            'GROUP_ID',
+            'TIME_ESTIMATE',
+          ],
+          start: startPosition,
+        },
+      ];
+    }
+
+    BX24.callBatch(batch, (res) => {
+      let hasMore = false;
+      let batchTasks = [];
+      for (let key in res) {
+        if (res[key].error()) {
+          console.error(`❌ Ошибка загрузки задач (${key}):`, res[key].error());
+          onError && onError(res[key].error());
+          return;
+        }
+        const data = res[key].data();
+        if (data && Array.isArray(data.tasks) && data.tasks.length > 0) {
+          console.log(`📥 Загружены ${data.tasks.length} задач(и) с ${key}`);
+          data.tasks.forEach((task) => {
+            tasks.set(task.id, task);
+            batchTasks.push(task);
+          });
+          hasMore = true;
+        }
+      }
+
+      // Если пакет задач получен, вызываем onBatchLoaded (если передан)
+      if (typeof onBatchLoaded === 'function' && batchTasks.length) {
+        // Если порядок в пакете не гарантирован, можно отсортировать по CREATED_DATE
+        batchTasks.sort((a, b) => new Date(b.CREATED_DATE) - new Date(a.CREATED_DATE));
+        onBatchLoaded(batchTasks);
+      }
+
+      if (hasMore) {
+        fetchBatch(start + maxBatch * batchSize);
+      } else {
+        console.log(`✅ Все задачи загружены. Всего задач: ${tasks.size}`);
+        onComplete(Array.from(tasks.values()), null);
+      }
+    });
+  }
+
+  fetchBatch(startIndex);
+}

@@ -43,6 +43,15 @@ export function showCalendarSettingsModal() {
         </div>
       </div>
 
+      <!-- Новый блок: Динамический крайний срок -->
+<div>
+  <label class="flex items-center gap-2">
+    <input type="checkbox" id="dynamicDeadline" class="rounded border-gray-300">
+    <span class="text-sm font-medium text-gray-700">Динамический крайний срок</span>
+  </label>
+</div>
+
+
       <div class="flex justify-end gap-4 mt-6">
         <button id="cancel-calendar-settings" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-600">
           Отмена
@@ -84,6 +93,8 @@ export function showCalendarSettingsModal() {
     document.getElementById('slotDuration').value = settings.slotDuration || '01:00:00';
     document.getElementById('allDaySlot').checked =
       settings.allDaySlot !== undefined ? settings.allDaySlot : true;
+    document.getElementById('dynamicDeadline').checked =
+      settings.dynamicDeadline !== undefined ? settings.dynamicDeadline : false;
   });
 
   // Кнопка "Отмена"
@@ -98,6 +109,7 @@ export function showCalendarSettingsModal() {
       slotMaxTime: document.getElementById('slotMaxTime').value,
       slotDuration: document.getElementById('slotDuration').value,
       allDaySlot: document.getElementById('allDaySlot').checked,
+      dynamicDeadline: document.getElementById('dynamicDeadline').checked,
     };
 
     BX24.callMethod(

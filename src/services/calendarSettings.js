@@ -7,6 +7,7 @@ export function loadCalendarSettings(callback) {
         slotMaxTime: '18:00',
         slotDuration: '01:00:00',
         allDaySlot: true, // Дефолтное значение
+        dynamicDeadline: false,
       });
     } else {
       let settings = res.data() || '{}'; // Защита от null
@@ -23,6 +24,7 @@ export function loadCalendarSettings(callback) {
         slotMaxTime: settings.slotMaxTime || '20:00',
         slotDuration: settings.slotDuration || '01:00:00',
         allDaySlot: settings.allDaySlot !== undefined ? settings.allDaySlot : true, // Загружаем флаг
+        dynamicDeadline: settings.dynamicDeadline !== undefined ? settings.dynamicDeadline : false,
       });
     }
   });

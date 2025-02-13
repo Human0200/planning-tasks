@@ -199,6 +199,29 @@ export function showEventForm(date, eventData, options = {}) {
   `;
 
   const modalInstance = createModal(modalTitle, formContent, { width: '600px', maxHeight: '80vh' });
+  // После создания модального окна, сразу после строки с modalInstance:
+  const finishDateInput = document.getElementById('event-finish-date');
+  const deadlineInput = document.getElementById('event-deadline');
+
+  // Если поля найдены и флаг включён, сразу подставляем значение
+  if (finishDateInput && deadlineInput && settings && settings.dynamicDeadline) {
+    deadlineInput.value = finishDateInput.value;
+  }
+
+  // Далее – обработчик изменения (оставляем его как есть)
+  if (finishDateInput && deadlineInput) {
+    finishDateInput.addEventListener('change', (e) => {
+      console.log('finishDateInput changed:', e.target.value);
+      if (settings && settings.dynamicDeadline) {
+        console.log('Dynamic deadline enabled – обновляем значение поля "Крайний срок".');
+        deadlineInput.value = e.target.value;
+      } else {
+        console.log(
+          'Dynamic deadline отключен – поле "Крайний срок" не обновляется автоматически.',
+        );
+      }
+    });
+  }
 
   // Загрузка проектов (групп)
   const projContainer = document.getElementById('project-container');

@@ -5,9 +5,8 @@ import { showTaskPlanningModal } from '../components/TaskPlanningModal.js';
 import { UserInfo } from '../components/UserInfo.js';
 import { showUserSettingsModal } from '../components/UserSettingsModal.js';
 import { loadCalendarSettings } from '../services/calendarSettings.js';
-import { loadAllTasks } from '../services/taskService.js';
+import { loadAllTasksIncrementally } from '../services/taskService.js';
 import { initCalendar } from './calendar.js';
-
 // Функция загрузки цветов пользователей из app.option
 function loadUserColors(callback) {
   BX24.callMethod('app.option.get', { option: 'user_colors' }, (res) => {
@@ -58,55 +57,58 @@ document.addEventListener('DOMContentLoaded', () => {
       // Загружаем цвета пользователей и затем задачи
 
       console.log('🚀 Загружаем все задачи...');
-      loadAllTasks((tasks, taskErr) => {
-        if (taskErr) {
-          console.error('❌ Ошибка загрузки задач:', taskErr);
-          return;
-        }
-
-        console.log('✅ Полученные задачи:', tasks);
-
-        // Преобразуем задачи в формат FullCalendar
-        const events = tasks.map((t) => {
-          const executorId = t.responsibleId;
-          const color = String(colorMap[executorId] || '#cccccc'); // Принудительно приводим к строке
-
-          const isAllDay = Boolean(
-            t.xmlId === 'ALLDAY', // Начало и конец в один день
-          );
-
-          return {
-            id: t.id,
-            title: t.title || 'Без названия',
-            start: t.startDatePlan,
-            end: t.endDatePlan,
-            allDay: isAllDay ? true : false, // Принудительно ставим true/false
-            backgroundColor: color,
-            borderColor: color,
-            eventColor: color,
-            textColor: '#ffffff', // Цвет текста для контраста
-            classNames: [`color-${executorId}`], // Добавляем класс для стилизации
-            extendedProps: {
-              executor: executorId,
-              responsibleName:
-                t.responsibleName || (t.responsible ? t.responsible.name : 'Не указан'),
-              deadline: t.deadline,
-              color: color,
-              comment: t.description || '',
-              timeEstimate: t.timeEstimate || null,
-              groupId: t.groupId,
-              allDay: isAllDay ? true : false, // Принудительно ставим true/false
-            },
-          };
-        });
-
-        // Добавляем события в календарь
-        calendar.addEventSource(events);
-        console.log('✅ Задачи добавлены:', events.length);
-
-        // Фильтруем задачи сразу после загрузки
-        filterEvents($('#user-select').val());
-      });
+      console.log('🚀 Начинаем инкрементальную загрузку задач...');
+      loadAllTasksIncrementally(
+        // onComplete: вызывается по завершении загрузки всех задач
+        (allTasks, err) => {
+          if (err) {
+            console.error('❌ Ошибка загрузки задач:', err);
+            return;
+          }
+          console.log(`✅ Все задачи загружены. Всего задач: ${allTasks.length}`);
+          filterEvents($('#user-select').val());
+        },
+        // onBatchLoaded: вызывается для каждого пакета задач
+        (batchTasks) => {
+          console.log(`📥 Получен пакет задач: ${batchTasks.length}`);
+          // Преобразуем текущий пакет задач в события для FullCalendar
+          const events = batchTasks.map((t) => {
+            const executorId = t.responsibleId;
+            const color = String(colorMap[executorId] || '#cccccc');
+            const isAllDay = Boolean(t.xmlId === 'ALLDAY');
+            return {
+              id: t.id,
+              title: t.title || 'Без названия',
+              start: t.startDatePlan,
+              end: t.endDatePlan,
+              allDay: isAllDay,
+              backgroundColor: color,
+              borderColor: color,
+              eventColor: color,
+              textColor: '#ffffff',
+              classNames: [`color-${executorId}`],
+              extendedProps: {
+                executor: executorId,
+                responsibleName:
+                  t.responsibleName || (t.responsible ? t.responsible.name : 'Не указан'),
+                deadline: t.deadline,
+                color: color,
+                comment: t.description || '',
+                timeEstimate: t.timeEstimate || null,
+                groupId: t.groupId,
+                allDay: isAllDay,
+              },
+            };
+          });
+          // Добавляем текущий пакет событий в календарь
+          window.calendar.addEventSource(events);
+          console.log(`✅ Добавлено событий из пакета: ${events.length}`);
+        },
+        // onError: обработка ошибок (если необходимо)
+        (error) => {
+          console.error('❌ Ошибка при загрузке задач:', error);
+        },
+      );
     });
   });
 
