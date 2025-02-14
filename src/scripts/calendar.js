@@ -50,7 +50,21 @@ export function initCalendar(settings, colorMap) {
     buttonClassNames: ['bg-blue-500', 'text-white', 'px-4', 'py-2', 'rounded-md', 'shadow'],
     // Настройка отображения события (по умолчанию выводим время, заголовок и "Ответственный")
     eventContent: function (arg) {
-      const timeText = arg.timeText;
+      const start = arg.event.start;
+      const end = arg.event.end;
+
+      // Пример опций форматирования: дата и время (ДД.ММ.ГГГГ, ЧЧ:ММ)
+      const options = {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      };
+
+      const startFormatted = new Intl.DateTimeFormat('ru-RU', options).format(start);
+      const endFormatted = new Intl.DateTimeFormat('ru-RU', options).format(end);
+      const timeText = `${startFormatted} - ${endFormatted}`;
       const title = arg.event.title;
       const responsible = arg.event.extendedProps.responsibleName || '';
 

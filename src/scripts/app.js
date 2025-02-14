@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
           }
           console.log(`✅ Все задачи загружены. Всего задач: ${allTasks.length}`);
+          console.log('Массив всех задач:', allTasks); // Здесь выводим массив задач
           filterEvents($('#user-select').val());
         },
         // onBatchLoaded: вызывается для каждого пакета задач
@@ -76,11 +77,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const executorId = t.responsibleId;
             const color = String(colorMap[executorId] || '#cccccc');
             const isAllDay = Boolean(t.xmlId === 'ALLDAY');
+
+            let eventStart, eventEnd;
+
+            if (t.status === '5') {
+              // если статус "5" означает, что задача завершена
+              eventStart = t.dateStart; // Фактическая дата начала
+              eventEnd = t.closedDate; // Дата закрытия задачи
+            } else {
+              eventStart = t.startDatePlan;
+              eventEnd = t.endDatePlan;
+            }
+
             return {
               id: t.id,
               title: t.title || 'Без названия',
-              start: t.startDatePlan,
-              end: t.endDatePlan,
+              start: eventStart,
+              end: eventEnd,
               allDay: isAllDay,
               backgroundColor: color,
               borderColor: color,
@@ -97,6 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 timeEstimate: t.timeEstimate || null,
                 groupId: t.groupId,
                 allDay: isAllDay,
+                dateStart: t.dateStart || null, // Фактическая дата начала
+                closedDate: t.closedDate || null, // Фактическая дата завершения
+                bitrix24Id: t.id, // <--- Должно быть установлено тут!
               },
             };
           });

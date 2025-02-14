@@ -82,6 +82,7 @@ main {
 
 .fc-event:hover {
   @apply scale-105 transition duration-200;
+  z-index: 10000 !important;
 }
 
 /* Анимация смены видов */
@@ -157,20 +158,26 @@ main {
 }
 
 /* Стили применяются только к select2 внутри блока с классом .custom-executor-wrapper */
-.custom-executor-wrapper .select2-container--default .select2-selection--single {
-  border: 1px solid #000000; /* соответствует Tailwind: border */
-  border-radius: 0.25rem; /* соответствует Tailwind: rounded */
+/* Убедитесь, что стили применяются к event-project */
+.custom-executor-wrapper .select2-container--default .select2-selection--single,
+#event-project + .select2-container--default .select2-selection--single {
+  border: 1px solid #000000;
+  border-radius: 0.25rem;
   width: 550px !important;
   height: 40px !important;
   z-index: 99999 !important;
 }
 
-/* Выравнивание текста внутри контейнера */
+/* Выравнивание текста */
 .custom-executor-wrapper
   .select2-container--default
   .select2-selection--single
+  .select2-selection__rendered,
+#event-project
+  + .select2-container--default
+  .select2-selection--single
   .select2-selection__rendered {
-  line-height: 2.5rem; /* Подберите значение, соответствующее вашим input-элементам */
+  line-height: 2.5rem;
 }
 
 /* Стили для состояния фокуса (при необходимости) */
@@ -178,6 +185,14 @@ main {
 .custom-executor-wrapper .select2-container--default .select2-selection--single:focus-within {
   border-color: #000000; /* Например, border-blue-500 */
   outline: none;
+}
+
+/* Только для select внутри .custom-executor-wrapper */
+.custom-executor-wrapper
+  .select2-container--default
+  .select2-selection--single
+  .select2-selection__arrow {
+  height: 40px !important; /* Высота стрелки */
 }
 
 .fc-event {

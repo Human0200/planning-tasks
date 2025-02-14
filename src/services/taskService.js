@@ -353,7 +353,7 @@ export function loadAllTasksIncrementally(onComplete, onBatchLoaded, onError) {
       if (hasMore) {
         fetchBatch(start + maxBatch * batchSize);
       } else {
-        console.log(`✅ Все задачи загружены. Всего задач: ${tasks.size}`);
+        console.log(`✅ Все задачи загружены. Всего задач: ${tasks.size} `);
         onComplete(Array.from(tasks.values()), null);
       }
     });

@@ -54,6 +54,15 @@ export function showEventForm(date, eventData, options = {}) {
     isEditMode && eventData?.extendedProps?.timeEstimate
       ? (eventData.extendedProps.timeEstimate / 3600).toFixed(2)
       : '';
+
+  const actualStartDate = eventData?.extendedProps?.dateStart
+    ? new Date(eventData.extendedProps.dateStart).toISOString().split('T')[0]
+    : '—';
+
+  const actualFinishDate = eventData?.extendedProps?.closedDate
+    ? new Date(eventData.extendedProps.closedDate).toISOString().split('T')[0]
+    : '—';
+
   const isNew = !isEditMode;
   const submitButtonText = isNew ? 'Создать' : 'Сохранить изменения';
   const modalTitle = isNew ? 'Создать задачу' : 'Редактировать задачу';
@@ -74,17 +83,52 @@ export function showEventForm(date, eventData, options = {}) {
   // Если allDay = true -> используем атрибут readonly в полях
   const readonlyAttr = allDay ? 'readonly' : '';
 
+  // Блок с фактическими датами (только для режима редактирования)
+  const actualTimeBlock = isEditMode
+    ? `
+  <div class="grid grid-cols-2 gap-4 bg-gray-100 p-2 rounded-md mb-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Фактическое начало</label>
+      <input type="text" class="border rounded w-full p-2 bg-gray-200" value="${actualStartDate}" readonly>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Фактическое завершение</label>
+      <input type="text" class="border rounded w-full p-2 bg-gray-200" value="${actualFinishDate}" readonly>
+    </div>
+  </div>
+  `
+    : '';
+
+  const taskLinkBlock =
+    isEditMode && eventData.extendedProps?.bitrix24Id
+      ? `
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Задача в Bitrix24</label>
+      <div
+        id="task-title-link"
+        data-task-id="${eventData.extendedProps.bitrix24Id}"
+        class="border rounded w-full p-2 mb-4 bg-gray-100 text-blue-600 hover:underline cursor-pointer"
+      >
+        Открыть задачу
+      </div>
+    </div>
+  `
+      : '';
+
   // Генерируем форму
   const formContent = `
     <form id="event-form" class="w-full">
-      <label class="block text-sm font-medium text-gray-700">Название задачи</label>
-      <input
-        type="text"
-        id="event-title"
-        class="border rounded w-full p-2 mb-4"
-        placeholder="Введите название"
-        value="${titleValue}"
-      >
+     ${taskLinkBlock}
+    <label class="block text-sm font-medium text-gray-700">Название задачи</label>
+    <input
+      type="text"
+      id="event-title"
+      class="border rounded w-full p-2 mb-4"
+      placeholder="Введите название"
+      value="${titleValue}"
+    >
+          <!-- Блок фактических дат (только если редактирование) -->
+    ${actualTimeBlock}
 
       <div class="grid grid-cols-2 gap-4">
         <div>
@@ -198,7 +242,37 @@ export function showEventForm(date, eventData, options = {}) {
     </form>
   `;
 
+  console.log('🔍 Проверка isEditMode:', isEditMode);
+  console.log('🔍 eventData.extendedProps:', eventData.extendedProps);
+  console.log('🔍 bitrix24Id:', eventData.extendedProps?.bitrix24Id);
+
   const modalInstance = createModal(modalTitle, formContent, { width: '600px', maxHeight: '80vh' });
+
+  if (isEditMode && eventData.extendedProps?.bitrix24Id) {
+    console.log('⏳ Добавляем обработчик для клика по названию задачи...');
+
+    setTimeout(() => {
+      const taskTitleElement = document.getElementById('task-title-link');
+      if (taskTitleElement) {
+        console.log('✅ Найден элемент task-title-link, добавляем обработчик клика');
+
+        taskTitleElement.addEventListener('click', () => {
+          const taskId = taskTitleElement.getAttribute('data-task-id');
+          const executorId = eventData.extendedProps.executor || '0'; // Если нет, подставляем 0
+          const taskUrl = `/company/personal/user/${executorId}/tasks/task/view/${taskId}/`;
+
+          console.log('🔗 Открываем задачу:', taskUrl); // Логируем перед открытием
+
+          BX24.openPath(taskUrl, function (result) {
+            console.log('✅ Задача открыта в слайдере:', taskUrl, 'Результат:', result);
+          });
+        });
+      } else {
+        console.warn('⚠️ Не найден элемент task-title-link! Проверь разметку.');
+      }
+    }, 0); // Гарантируем, что элемент загружен перед добавлением обработчика
+  }
+
   // После создания модального окна, сразу после строки с modalInstance:
   const finishDateInput = document.getElementById('event-finish-date');
   const deadlineInput = document.getElementById('event-deadline');
