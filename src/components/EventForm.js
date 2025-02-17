@@ -17,7 +17,13 @@ export function showEventForm(date, eventData, options = {}) {
 
   const settings = window.calendarSettings || { slotMinTime: '08:00', slotMaxTime: '18:00' };
 
-  let startDate, formattedDate, formattedFinishDate, formattedStartTime, formattedEndTime;
+  let startDate,
+    formattedDate,
+    formattedFinishDate,
+    formattedStartTime,
+    formattedEndTime,
+    formattedStartDateTime,
+    formattedFinishDateTime;
 
   if (isEditMode) {
     // Редактирование
@@ -26,19 +32,15 @@ export function showEventForm(date, eventData, options = {}) {
       ? new Date(eventData?.extendedProps.originalEnd)
       : new Date(startDate.getTime() + 30 * 60 * 1000);
 
-    formattedDate = startDate.toISOString().split('T')[0];
-    formattedFinishDate = endDate.toISOString().split('T')[0];
-    formattedStartTime = startDate.toTimeString().slice(0, 5);
-    formattedEndTime = endDate.toTimeString().slice(0, 5);
+    formattedStartDateTime = startDate.toISOString().slice(0, 16); // Формат YYYY-MM-DDTHH:MM
+    formattedFinishDateTime = endDate.toISOString().slice(0, 16);
   } else {
     // Создание
     startDate = new Date(date);
     const endDate = new Date(startDate.getTime() + 30 * 60 * 1000);
 
-    formattedDate = startDate.toISOString().split('T')[0];
-    formattedFinishDate = endDate.toISOString().split('T')[0];
-    formattedStartTime = startDate.toTimeString().slice(0, 5);
-    formattedEndTime = endDate.toTimeString().slice(0, 5);
+    formattedStartDateTime = startDate.toISOString().slice(0, 16); // Формат YYYY-MM-DDTHH:MM
+    formattedFinishDateTime = endDate.toISOString().slice(0, 16);
 
     if (allDay) {
       formattedStartTime = settings.slotMinTime; // или что-то вроде getUserCalendarStart()
@@ -154,63 +156,23 @@ export function showEventForm(date, eventData, options = {}) {
           <!-- Блок фактических дат (только если редактирование) -->
     ${actualTimeBlock}
 
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Дата начала</label>
-          <input
-            type="date"
-            id="event-date"
-            class="border rounded w-full p-2 mb-4"
-            value="${formattedDate}"
-            ${readonlyAttr}
-          >
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Дата завершения</label>
-          <input
-            type="date"
-            id="event-finish-date"
-            class="border rounded w-full p-2 mb-4"
-            value="${formattedFinishDate}"
-            ${readonlyAttr}
-          >
-        </div>
-      </div>
+<div>
+  <label class="block text-sm font-medium text-gray-700">Дата и время начала</label>
+  <input type="datetime-local" id="event-start-datetime" class="border rounded w-full p-2 mb-4" value="${formattedStartDateTime}" ${readonlyAttr}>
+</div>
 
-      <!-- Время начала/окончания (всегда показываем, но readonly при allDay) -->
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Время начала</label>
-          <input
-            type="time"
-            id="event-start-time"
-            class="border rounded w-full p-2 mb-4"
-            value="${formattedStartTime}"
-            ${readonlyAttr}
-          >
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Время окончания</label>
-          <input
-            type="time"
-            id="event-end-time"
-            class="border rounded w-full p-2 mb-4"
-            value="${formattedEndTime}"
-            ${readonlyAttr}
-          >
-        </div>
-      </div>
+<div>
+  <label class="block text-sm font-medium text-gray-700">Дата и время завершения</label>
+  <input type="datetime-local" id="event-finish-datetime" class="border rounded w-full p-2 mb-4" value="${formattedFinishDateTime}" ${readonlyAttr}>
+</div>
+
 
       ${executorSelectHTML}
       
 
-      <label class="block text-sm font-medium text-gray-700">Крайний срок</label>
-      <input
-        type="date"
-        id="event-deadline"
-        class="border rounded w-full p-2 mb-4"
-        value="${deadlineValue}"
-      >
+<label class="block text-sm font-medium text-gray-700">Крайний срок</label>
+<input type="datetime-local" id="event-deadline-datetime" class="border rounded w-full p-2 mb-4" value="${deadlineValue}">
+
 
           <!-- Новый блок: Проект -->
     <label class="block text-sm font-medium text-gray-700">Проект (Группа Bitrix24)</label>
@@ -287,26 +249,17 @@ export function showEventForm(date, eventData, options = {}) {
     }, 0); // Гарантируем, что элемент загружен перед добавлением обработчика
   }
 
-  // После создания модального окна, сразу после строки с modalInstance:
-  const finishDateInput = document.getElementById('event-finish-date');
-  const deadlineInput = document.getElementById('event-deadline');
+  const finishDatetimeInput = document.getElementById('event-finish-datetime');
+  const deadlineInput = document.getElementById('event-deadline-datetime');
 
-  // Если поля найдены и флаг включён, сразу подставляем значение
-  if (finishDateInput && deadlineInput && settings && settings.dynamicDeadline) {
-    deadlineInput.value = finishDateInput.value;
+  if (finishDatetimeInput && deadlineInput && settings?.dynamicDeadline) {
+    deadlineInput.value = finishDatetimeInput.value;
   }
 
-  // Далее – обработчик изменения (оставляем его как есть)
-  if (finishDateInput && deadlineInput) {
-    finishDateInput.addEventListener('change', (e) => {
-      console.log('finishDateInput changed:', e.target.value);
-      if (settings && settings.dynamicDeadline) {
-        console.log('Dynamic deadline enabled – обновляем значение поля "Крайний срок".');
+  if (finishDatetimeInput && deadlineInput) {
+    finishDatetimeInput.addEventListener('change', (e) => {
+      if (settings?.dynamicDeadline) {
         deadlineInput.value = e.target.value;
-      } else {
-        console.log(
-          'Dynamic deadline отключен – поле "Крайний срок" не обновляется автоматически.',
-        );
       }
     });
   }
