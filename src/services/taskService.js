@@ -20,6 +20,7 @@ export function createTask(taskData, callback) {
         XML_ID: taskData.allDay ? 'ALLDAY' : null, // ✅ Только для "Весь день"
         GROUP_ID: taskData.groupId, // <-- тут
         TIME_ESTIMATE: taskData.timeEstimate || null,
+        ALLOW_TIME_TRACKING: taskData.allowTimeTracking,
         // Дополнительные поля, если нужны (приоритет, теги и т.д.)
       },
     },
@@ -53,6 +54,7 @@ export function updateTask(taskId, taskData, callback) {
         END_DATE_PLAN: taskData.end,
         DEADLINE: taskData.deadline,
         TIME_ESTIMATE: taskData.timeEstimate || null,
+        ALLOW_TIME_TRACKING: taskData.allowTimeTracking,
       },
     },
     (result) => {
@@ -355,6 +357,120 @@ export function loadAllTasksIncrementally(onComplete, onBatchLoaded, onError) {
       } else {
         console.log(`✅ Все задачи загружены. Всего задач: ${tasks.size} `);
         onComplete(Array.from(tasks.values()), null);
+      }
+    });
+  }
+
+  fetchBatch(startIndex);
+}
+
+// Тестовый вариант для оптимизации запросов
+/**
+ * Загружает задачи для указанного диапазона дат с опциональной фильтрацией по ответственному.
+ * @param {String} startDate - Начало диапазона в формате YYYY-MM-DD.
+ * @param {String} endDate - Конец диапазона в формате YYYY-MM-DD.
+ * @param {Function} onComplete - Вызывается после загрузки всех задач.
+ * @param {Function} onBatchLoaded - Вызывается для каждого пакета задач.
+ * @param {Function} onError - Обработка ошибок.
+ * @param {String|Number|null} responsibleId - (Опционально) ID пользователя для фильтра.
+ */
+export function loadTasksForRange(
+  startDate,
+  endDate,
+  onComplete,
+  onBatchLoaded,
+  onError,
+  responsibleId = null,
+) {
+  // Реализуем простое кэширование по диапазону и фильтру (при необходимости)
+  const cacheKey = `${responsibleId || 'all'}_${startDate}_${endDate}`;
+  if (window.taskCache && window.taskCache[cacheKey]) {
+    console.log(`♻️ Используем кэш для ${cacheKey}`);
+    onComplete(window.taskCache[cacheKey], null);
+    return;
+  }
+
+  let tasks = new Map();
+  const batchSize = 50;
+  let startIndex = 0;
+
+  function fetchBatch(start) {
+    let batch = {};
+    console.log(`📡 Запрос batch с задачами с ${startDate} по ${endDate}, начиная с ${start}`);
+
+    // Формируем фильтр: всегда ограничиваем по диапазону дат
+    let filter = {
+      '<=START_DATE_PLAN': endDate, // задача начинается до или в конце выбранного диапазона
+      '>=END_DATE_PLAN': startDate, // задача заканчивается после или в начале выбранного диапазона
+    };
+
+    // Если выбран пользователь – добавляем фильтр по RESPONSIBLE_ID
+    if (responsibleId) {
+      filter.RESPONSIBLE_ID = responsibleId;
+    }
+
+    // Подготавливаем 5 страниц (batch)
+    for (let i = 0; i < 5; i++) {
+      let startPosition = start + i * batchSize;
+      batch[`page_${i}`] = [
+        'tasks.task.list',
+        {
+          filter: filter,
+          order: { CREATED_DATE: 'DESC' },
+          SELECT: [
+            'ID',
+            'TITLE',
+            'RESPONSIBLE_ID',
+            'START_DATE_PLAN',
+            'END_DATE_PLAN',
+            'DEADLINE',
+            'DESCRIPTION',
+            'GROUP_ID',
+            'TIME_ESTIMATE',
+            'XML_ID', // для "Весь день"
+          ],
+          start: startPosition,
+        },
+      ];
+    }
+
+    BX24.callBatch(batch, (res) => {
+      let hasMore = false;
+      let batchTasks = [];
+
+      for (let key in res) {
+        if (res[key].error()) {
+          console.error(`❌ Ошибка загрузки задач (${key}):`, res[key].error());
+          onError && onError(res[key].error());
+          return;
+        }
+        const data = res[key].data();
+        if (data?.tasks?.length) {
+          console.log(`📥 Загружены ${data.tasks.length} задач(и) с ${key}`);
+          data.tasks.forEach((task) => {
+            tasks.set(task.id, task);
+            batchTasks.push(task);
+          });
+          hasMore = true;
+        }
+      }
+
+      if (typeof onBatchLoaded === 'function' && batchTasks.length) {
+        // Можно отсортировать, если требуется
+        batchTasks.sort((a, b) => new Date(b.CREATED_DATE) - new Date(a.CREATED_DATE));
+        onBatchLoaded(batchTasks);
+      }
+
+      if (hasMore) {
+        fetchBatch(start + 5 * batchSize);
+      } else {
+        console.log(`✅ Все задачи загружены. Всего задач: ${tasks.size}`);
+        const allTasks = Array.from(tasks.values());
+        console.log('Задачи, полученные из BX24:', allTasks);
+        // Сохраняем в кэш
+        window.taskCache = window.taskCache || {};
+        window.taskCache[cacheKey] = allTasks;
+        onComplete(allTasks, null);
       }
     });
   }

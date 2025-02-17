@@ -18,7 +18,7 @@ export function Sidebar() {
           'data-menu-action="Незапланированные задачи"',
         )}
         ${createMenuItem('group', 'Настройки пользователей', 'data-menu-action="Пользователи"')}
-        ${createMenuItem('smart_toy', 'Модель ИИ', 'data-menu-action="Модель ИИ"')}
+
       </ul>
     </nav>
   `;

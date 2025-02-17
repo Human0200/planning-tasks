@@ -22,9 +22,9 @@ export function UserInfo(onUserChange) {
   filterContainer.className = 'flex items-center gap-4';
 
   filterContainer.innerHTML = `
-    <label class="inline-flex items-center gap-1">
-      <input type="checkbox" id="hideNoTimeEstimate" class="cursor-pointer" />
-      <span>Убрать задачи без планируемого времени</span>
+<label class="inline-flex items-center gap-1">
+      <input type="checkbox" id="showActualTimeOnly" class="cursor-pointer" />
+      <span>Показать задачи по фактическому времени</span>
     </label>
     <label class="inline-flex items-center gap-1">
       <input type="checkbox" id="hideNoDeadline" class="cursor-pointer" />
@@ -35,11 +35,11 @@ export function UserInfo(onUserChange) {
   userInfoContainer.appendChild(filterContainer);
 
   // Вешаем обработчики на чекбоксы:
-  const chkTimeEstimate = filterContainer.querySelector('#hideNoTimeEstimate');
+  const chkActualTimeOnly = filterContainer.querySelector('#showActualTimeOnly');
   const chkDeadline = filterContainer.querySelector('#hideNoDeadline');
 
   // При клике на чекбокс – вызываем фильтрацию по текущему выбранному пользователю
-  [chkTimeEstimate, chkDeadline].forEach((chk) => {
+  [chkActualTimeOnly, chkDeadline].forEach((chk) => {
     chk.addEventListener('change', () => {
       // Если используете filterEvents глобально, передавайте текущего пользователя:
       const currentUserValue = $(selectEl).val();

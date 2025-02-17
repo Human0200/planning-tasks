@@ -1,3 +1,4 @@
+import { transformTaskToEvent } from '../scripts/calendar.js';
 import { askAiReport } from '../services/aiClient.js';
 import { createTask, deleteTask, getProjects, updateTask } from '../services/taskService.js';
 import { getUsers } from '../services/userService.js';
@@ -7,6 +8,10 @@ import { showAiReportModal } from './showAiReportModal.js';
 export function showEventForm(date, eventData, options = {}) {
   const colorMap = options.colorMap || {}; // Получаем переданную карту цветов
   const isEditMode = !!eventData;
+
+  // Используйте eventData?.extendedProps вместо eventData?.extendedProps
+  console.log('🔍 eventData?.extendedProps:', eventData?.extendedProps);
+
   // Проверяем флаг "Весь день"
   const allDay = options.allDay === true || eventData?.extendedProps?.allDay === true;
 
@@ -16,9 +21,9 @@ export function showEventForm(date, eventData, options = {}) {
 
   if (isEditMode) {
     // Редактирование
-    startDate = new Date(eventData.start);
-    const endDate = eventData.end
-      ? new Date(eventData.end)
+    startDate = new Date(eventData?.extendedProps?.originalStart);
+    const endDate = eventData?.extendedProps.originalEnd
+      ? new Date(eventData?.extendedProps.originalEnd)
       : new Date(startDate.getTime() + 30 * 60 * 1000);
 
     formattedDate = startDate.toISOString().split('T')[0];
@@ -43,24 +48,24 @@ export function showEventForm(date, eventData, options = {}) {
 
   const titleValue = eventData?.title || '';
   const deadlineValue = eventData?.extendedProps?.deadline
-    ? eventData.extendedProps.deadline.split('T')[0]
+    ? eventData?.extendedProps.deadline.split('T')[0]
     : '';
 
   const commentValue = eventData?.extendedProps?.comment || '';
   const groupIdValue =
-    isEditMode && eventData?.extendedProps?.groupId ? eventData.extendedProps.groupId : '';
+    isEditMode && eventData?.extendedProps?.groupId ? eventData?.extendedProps.groupId : '';
 
   const timeEstimateValue =
     isEditMode && eventData?.extendedProps?.timeEstimate
-      ? (eventData.extendedProps.timeEstimate / 3600).toFixed(2)
+      ? (eventData?.extendedProps.timeEstimate / 3600).toFixed(2)
       : '';
 
   const actualStartDate = eventData?.extendedProps?.dateStart
-    ? new Date(eventData.extendedProps.dateStart).toISOString().split('T')[0]
+    ? new Date(eventData?.extendedProps.dateStart).toISOString().split('T')[0]
     : '—';
 
   const actualFinishDate = eventData?.extendedProps?.closedDate
-    ? new Date(eventData.extendedProps.closedDate).toISOString().split('T')[0]
+    ? new Date(eventData?.extendedProps.closedDate).toISOString().split('T')[0]
     : '—';
 
   const isNew = !isEditMode;
@@ -83,6 +88,11 @@ export function showEventForm(date, eventData, options = {}) {
   // Если allDay = true -> используем атрибут readonly в полях
   const readonlyAttr = allDay ? 'readonly' : '';
 
+  const allowTimeTrackingValue = isEditMode && eventData?.extendedProps?.allowTimeTracking === 'Y';
+  const actualTimeSpentValue =
+    isEditMode && eventData?.extendedProps?.durationFact
+      ? (eventData.extendedProps.durationFact / 3600).toFixed(2)
+      : '0.00';
   // Блок с фактическими датами (только для режима редактирования)
   const actualTimeBlock = isEditMode
     ? `
@@ -95,18 +105,22 @@ export function showEventForm(date, eventData, options = {}) {
       <label class="block text-sm font-medium text-gray-700">Фактическое завершение</label>
       <input type="text" class="border rounded w-full p-2 bg-gray-200" value="${actualFinishDate}" readonly>
     </div>
+    <div class="col-span-2">
+      <label class="block text-sm font-medium text-gray-700">Фактическое затраченное время (часы)</label>
+      <input type="text" class="border rounded w-full p-2 bg-gray-200" value="${actualTimeSpentValue}" readonly>
+    </div>
   </div>
   `
     : '';
 
   const taskLinkBlock =
-    isEditMode && eventData.extendedProps?.bitrix24Id
+    isEditMode && eventData?.extendedProps?.bitrix24Id
       ? `
     <div>
       <label class="block text-sm font-medium text-gray-700">Задача в Bitrix24</label>
       <div
         id="task-title-link"
-        data-task-id="${eventData.extendedProps.bitrix24Id}"
+        data-task-id="${eventData?.extendedProps.bitrix24Id}"
         class="border rounded w-full p-2 mb-4 bg-gray-100 text-blue-600 hover:underline cursor-pointer"
       >
         Открыть задачу
@@ -115,6 +129,16 @@ export function showEventForm(date, eventData, options = {}) {
   `
       : '';
 
+  const timeTrackingCheckbox = `
+  <div class="flex items-center mb-4">
+    <input type="checkbox" id="allow-time-tracking" class="mr-2" ${
+      allowTimeTrackingValue ? 'checked' : ''
+    }>
+    <label for="allow-time-tracking" class="text-sm font-medium text-gray-700">
+      Учитывать затраченное время
+    </label>
+  </div>
+`;
   // Генерируем форму
   const formContent = `
     <form id="event-form" class="w-full">
@@ -212,20 +236,10 @@ export function showEventForm(date, eventData, options = {}) {
         placeholder="Дополнительная информация"
       >${commentValue}</textarea>
 
-         <!-- КНОПКА ФОРМИРОВАНИЯ ОТЧЁТА ПОД КОММЕНТАРИЕМ, но ДО основных кнопок -->
-    ${
-      !isNew
-        ? `<div class="mb-4 flex justify-end">
-             <button
-               type="button"
-               id="generate-report"
-               class="border border-gray-300 bg-white text-gray-700 px-3 py-2 rounded hover:bg-gray-100"
-             >
-               Сформировать отчёт
-             </button>
-           </div>`
-        : ''
-    }
+
+
+        <!-- Чекбокс "Учитывать затраченное время" -->
+    ${timeTrackingCheckbox}
 
       <div class="flex justify-end gap-4">
         <button
@@ -243,12 +257,12 @@ export function showEventForm(date, eventData, options = {}) {
   `;
 
   console.log('🔍 Проверка isEditMode:', isEditMode);
-  console.log('🔍 eventData.extendedProps:', eventData.extendedProps);
-  console.log('🔍 bitrix24Id:', eventData.extendedProps?.bitrix24Id);
+  console.log('🔍 eventData?.extendedProps:', eventData?.extendedProps);
+  console.log('🔍 bitrix24Id:', eventData?.extendedProps?.bitrix24Id);
 
   const modalInstance = createModal(modalTitle, formContent, { width: '600px', maxHeight: '80vh' });
 
-  if (isEditMode && eventData.extendedProps?.bitrix24Id) {
+  if (isEditMode && eventData?.extendedProps?.bitrix24Id) {
     console.log('⏳ Добавляем обработчик для клика по названию задачи...');
 
     setTimeout(() => {
@@ -258,7 +272,7 @@ export function showEventForm(date, eventData, options = {}) {
 
         taskTitleElement.addEventListener('click', () => {
           const taskId = taskTitleElement.getAttribute('data-task-id');
-          const executorId = eventData.extendedProps.executor || '0'; // Если нет, подставляем 0
+          const executorId = eventData?.extendedProps.executor || '0'; // Если нет, подставляем 0
           const taskUrl = `/company/personal/user/${executorId}/tasks/task/view/${taskId}/`;
 
           console.log('🔗 Открываем задачу:', taskUrl); // Логируем перед открытием
@@ -376,7 +390,7 @@ export function showEventForm(date, eventData, options = {}) {
             dropdownParent: $(modalInstance.modalElement),
           });
           if (isEditMode && eventData?.extendedProps?.executor) {
-            $(selectEl).val(eventData.extendedProps.executor).trigger('change');
+            $(selectEl).val(eventData?.extendedProps.executor).trigger('change');
           }
         }
       });
@@ -397,6 +411,8 @@ export function showEventForm(date, eventData, options = {}) {
     const timeEstInput = document.getElementById('event-time-estimate');
     const hours = parseFloat(timeEstInput.value) || 0;
     const timeEstimateSec = Math.round(hours * 3600);
+    const allowTimeTrackingChecked = document.getElementById('allow-time-tracking').checked;
+    const allowTimeTracking = allowTimeTrackingChecked ? 'Y' : 'N';
 
     let executor = '';
     if (userFilterValue === 'all') {
@@ -430,9 +446,19 @@ export function showEventForm(date, eventData, options = {}) {
       allDay: allDay, // Приводим к формату Bitrix
       timeEstimate: timeEstimateSec,
       groupId,
+      allowTimeTracking, // ✅ Передаем в задачу
     };
 
     console.log('Смотрим на отправленный массив данных для задачи:', taskData);
+    let responsibleName = '';
+    if (userFilterValue !== 'all') {
+      // Если выбран конкретный пользователь — берём текст выбранного option
+      responsibleName = globalSelect?.selectedOptions[0]?.textContent || '';
+    } else {
+      // Если выбран вариант "all", то из селекта исполнителя
+      const exSel = document.getElementById('event-executor');
+      responsibleName = exSel?.selectedOptions[0]?.textContent || '';
+    }
 
     if (isNew) {
       // Создание задачи
@@ -444,45 +470,65 @@ export function showEventForm(date, eventData, options = {}) {
             const realId = res.task.id;
             const newTaskColor = colorMap[executor] || '#cccccc'; // Определяем цвет
             console.log('🚀 Новый цвет задачи:', newTaskColor);
-            window.calendar.addEvent({
+
+            // Формируем объект задачи в том же формате, что используется в transformTaskToEvent:
+            const newTaskObject = {
+              ...taskData,
               id: realId,
-              title,
-              start: eventStart,
-              end: eventEnd,
-              allDay,
-              backgroundColor: newTaskColor,
-              borderColor: newTaskColor,
-              extendedProps: {
-                comment,
-                deadline,
-                executor,
-                bitrix24Id: realId,
-                allDay,
-                color: newTaskColor,
-                groupId,
-                timeEstimate: timeEstimateSec,
-              },
+              // Для незавершённых задач используем плановые даты:
+              startDatePlan: eventStart,
+              endDatePlan: eventEnd,
+              // Если задача "на весь день", выставляем xmlId:
+              xmlId: allDay ? 'ALLDAY' : null,
+              responsibleId: executor,
+              responsibleName,
+            };
+
+            // Преобразуем задачу в событие (возможно, массив сегментов)
+            const transformed = transformTaskToEvent(newTaskObject, colorMap);
+            const eventsToAdd = Array.isArray(transformed) ? transformed : [transformed];
+
+            // Добавляем каждый сегмент в календарь
+            eventsToAdd.forEach((ev) => {
+              window.calendar.addEvent(ev);
             });
+
             console.log('✅ Задача создана:', realId);
           }
         }
       });
     } else {
       // Редактирование задачи
-      const taskId = eventData.extendedProps?.bitrix24Id || eventData.id;
+      const taskId = eventData?.extendedProps?.bitrix24Id || eventData?.id;
       updateTask(taskId, taskData, (res, err) => {
         if (err) {
           alert('Ошибка обновления задачи');
         } else {
-          eventData.setProp('title', title);
-          eventData.setStart(eventStart);
-          eventData.setEnd(eventEnd);
-          eventData.setExtendedProp('comment', comment);
-          eventData.setExtendedProp('deadline', deadline);
-          eventData.setExtendedProp('executor', executor);
-          eventData.setExtendedProp('allDay', allDay);
-          eventData.setExtendedProp('groupId', groupId);
-          eventData.setExtendedProp('timeEstimate', timeEstimateSec);
+          // Формируем обновлённый объект задачи для преобразования
+          const updatedTaskObject = {
+            ...taskData,
+            id: taskId,
+            startDatePlan: eventStart,
+            endDatePlan: eventEnd,
+            xmlId: allDay ? 'ALLDAY' : null,
+            responsibleId: executor,
+            responsibleName,
+            allowTimeTracking, // ✅ Передаем в задачу
+          };
+
+          const transformed = transformTaskToEvent(updatedTaskObject, colorMap);
+          // Для простоты, обновляем текущее событие, используя первый сегмент
+          const updatedEvent = Array.isArray(transformed) ? transformed[0] : transformed;
+
+          // Обновляем свойства текущего события
+          eventData.setProp('title', updatedEvent.title);
+          eventData.setStart(updatedEvent.start);
+          eventData.setEnd(updatedEvent.end);
+          // Обновляем extendedProps полностью
+          Object.keys(updatedEvent.extendedProps).forEach((key) => {
+            eventData.setExtendedProp(key, updatedEvent.extendedProps[key]);
+          });
+
           console.log('✅ Задача обновлена:', taskId);
         }
       });
@@ -542,14 +588,14 @@ export function showEventForm(date, eventData, options = {}) {
   // Удаление задачи
   if (!isNew) {
     document.getElementById('delete-event').addEventListener('click', () => {
-      const taskId = eventData.extendedProps?.bitrix24Id || eventData.id;
+      const taskId = eventData?.extendedProps?.bitrix24Id || eventData?.id;
       if (!taskId) {
         console.error('❌ Ошибка: ID задачи не найден!');
         return;
       }
       deleteTask(taskId, (success, err) => {
         if (success) {
-          eventData.remove();
+          eventData?.remove();
           console.log('✅ Задача удалена:', taskId);
         } else {
           alert('Ошибка удаления задачи');
