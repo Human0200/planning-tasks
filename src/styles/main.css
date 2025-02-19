@@ -180,6 +180,12 @@ main {
   line-height: 2.5rem;
 }
 
+/* Стили для dropdown внутри .custom-executor-wrapper и #event-project */
+.custom-executor-wrapper .select2-dropdown .select2-dropdown--above,
+#event-project + .select2-dropdown .select2-dropdown--above {
+  margin-top: 200px !important; /* Смещение вниз */
+}
+
 /* Стили для состояния фокуса (при необходимости) */
 .custom-executor-wrapper .select2-container--default .select2-selection--single:focus,
 .custom-executor-wrapper .select2-container--default .select2-selection--single:focus-within {

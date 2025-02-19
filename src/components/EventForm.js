@@ -5,12 +5,18 @@ import { getUsers } from '../services/userService.js';
 import { createModal } from './Modal.js';
 import { showAiReportModal } from './showAiReportModal.js';
 
+function formatDateTimeLocal(date) {
+  if (!date) return '';
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 export function showEventForm(date, eventData, options = {}) {
   const colorMap = options.colorMap || {}; // Получаем переданную карту цветов
   const isEditMode = !!eventData;
 
   // Используйте eventData?.extendedProps вместо eventData?.extendedProps
   console.log('🔍 eventData?.extendedProps:', eventData?.extendedProps);
+  console.log('🔍 eventData:', eventData);
 
   // Проверяем флаг "Весь день"
   const allDay = options.allDay === true || eventData?.extendedProps?.allDay === true;
@@ -32,15 +38,14 @@ export function showEventForm(date, eventData, options = {}) {
       ? new Date(eventData?.extendedProps.originalEnd)
       : new Date(startDate.getTime() + 30 * 60 * 1000);
 
-    formattedStartDateTime = startDate.toISOString().slice(0, 16); // Формат YYYY-MM-DDTHH:MM
-    formattedFinishDateTime = endDate.toISOString().slice(0, 16);
+    formattedStartDateTime = formatDateTimeLocal(startDate);
+    formattedFinishDateTime = formatDateTimeLocal(endDate);
   } else {
     // Создание
     startDate = new Date(date);
     const endDate = new Date(startDate.getTime() + 30 * 60 * 1000);
-
-    formattedStartDateTime = startDate.toISOString().slice(0, 16); // Формат YYYY-MM-DDTHH:MM
-    formattedFinishDateTime = endDate.toISOString().slice(0, 16);
+    formattedStartDateTime = formatDateTimeLocal(startDate);
+    formattedFinishDateTime = formatDateTimeLocal(endDate);
 
     if (allDay) {
       formattedStartTime = settings.slotMinTime; // или что-то вроде getUserCalendarStart()
@@ -355,9 +360,9 @@ export function showEventForm(date, eventData, options = {}) {
     e.preventDefault();
 
     const title = document.getElementById('event-title').value.trim() || 'Без названия';
-    const startDateVal = document.getElementById('event-date').value;
-    const finishDateVal = document.getElementById('event-finish-date').value;
-    const deadline = document.getElementById('event-deadline').value;
+    const startDateTime = document.getElementById('event-start-datetime').value;
+    const finishDateTime = document.getElementById('event-finish-datetime').value;
+    const deadlineDateTime = document.getElementById('event-deadline-datetime').value;
     const comment = document.getElementById('event-comment').value.trim();
     const projectSelect = document.getElementById('event-project');
     const groupId = projectSelect?.value ? parseInt(projectSelect.value, 10) : null;
@@ -386,16 +391,18 @@ export function showEventForm(date, eventData, options = {}) {
       endTimeVal = document.getElementById('event-end-time')?.value || settings.slotMaxTime;
     }
 
-    const eventStart = `${startDateVal}T${startTimeVal}`;
-    const eventEnd = `${finishDateVal}T${endTimeVal}`;
-
+    const eventStart = startDateTime ? `${startDateTime}:00` : null;
+    const eventEnd = finishDateTime ? `${finishDateTime}:00` : null;
+    const eventDeadline = deadlineDateTime ? `${deadlineDateTime}:00` : null; // Исправлено
+    console.log('COMMENT', comment);
     const taskData = {
       title,
       comment,
       executor,
       start: eventStart,
+      comment,
       end: eventEnd,
-      deadline,
+      deadline: eventDeadline, // Здесь тоже исправлено
       allDay: allDay, // Приводим к формату Bitrix
       timeEstimate: timeEstimateSec,
       groupId,
@@ -434,6 +441,7 @@ export function showEventForm(date, eventData, options = {}) {
               // Если задача "на весь день", выставляем xmlId:
               xmlId: allDay ? 'ALLDAY' : null,
               responsibleId: executor,
+              comment,
               responsibleName,
             };
 
@@ -443,6 +451,12 @@ export function showEventForm(date, eventData, options = {}) {
 
             // Добавляем каждый сегмент в календарь
             eventsToAdd.forEach((ev) => {
+              // ✅ Добавляем комментарий в extendedProps перед добавлением события
+              ev.extendedProps = {
+                ...ev.extendedProps,
+                comment: newTaskObject.comment, // Добавляем комментарий
+              };
+
               window.calendar.addEvent(ev);
             });
 
@@ -461,6 +475,7 @@ export function showEventForm(date, eventData, options = {}) {
           const updatedTaskObject = {
             ...taskData,
             id: taskId,
+            comment,
             startDatePlan: eventStart,
             endDatePlan: eventEnd,
             xmlId: allDay ? 'ALLDAY' : null,
@@ -470,16 +485,22 @@ export function showEventForm(date, eventData, options = {}) {
           };
 
           const transformed = transformTaskToEvent(updatedTaskObject, colorMap);
-          // Для простоты, обновляем текущее событие, используя первый сегмент
           const updatedEvent = Array.isArray(transformed) ? transformed[0] : transformed;
 
-          // Обновляем свойства текущего события
+          // ✅ Обновляем свойства текущего события в календаре
           eventData.setProp('title', updatedEvent.title);
           eventData.setStart(updatedEvent.start);
           eventData.setEnd(updatedEvent.end);
-          // Обновляем extendedProps полностью
-          Object.keys(updatedEvent.extendedProps).forEach((key) => {
-            eventData.setExtendedProp(key, updatedEvent.extendedProps[key]);
+
+          // ✅ Обновляем extendedProps, сохраняя старые данные и добавляя новые
+          const updatedExtendedProps = {
+            ...(eventData.extendedProps || {}), // Сохраняем все старые extendedProps
+            ...updatedEvent.extendedProps, // Обновляем новыми данными
+            comment: updatedTaskObject.comment || '', // Добавляем/обновляем комментарий
+          };
+
+          Object.keys(updatedExtendedProps).forEach((key) => {
+            eventData.setExtendedProp(key, updatedExtendedProps[key]);
           });
 
           console.log('✅ Задача обновлена:', taskId);
@@ -558,3 +579,29 @@ export function showEventForm(date, eventData, options = {}) {
     });
   }
 }
+
+function adjustDropdownPosition() {
+  // Найти все элементы с классом .select2-dropdown.select2-dropdown--above
+  const dropdowns = document.querySelectorAll('.select2-dropdown.select2-dropdown--above');
+
+  dropdowns.forEach((dropdown) => {
+    // Получить текущую ширину элемента
+    const computedStyle = window.getComputedStyle(dropdown);
+    const width = parseInt(computedStyle.width, 10); // Преобразовать ширину в число
+
+    // Если ширина 550px, применяем отступ
+    if (width === 550) {
+      dropdown.style.marginTop = '200px';
+    }
+  });
+}
+
+// Вызываем функцию после открытия select2
+document.addEventListener('DOMContentLoaded', () => {
+  // Следим за появлением dropdown и корректируем его позицию
+  const observer = new MutationObserver(() => {
+    adjustDropdownPosition();
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+});

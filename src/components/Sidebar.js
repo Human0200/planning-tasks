@@ -18,7 +18,7 @@ export function Sidebar() {
           'data-menu-action="Незапланированные задачи"',
         )}
         ${createMenuItem('group', 'Настройки пользователей', 'data-menu-action="Пользователи"')}
-
+        ${createMenuItem('help', 'Инструкция', 'data-menu-action="Инструкция"')}
       </ul>
     </nav>
   `;
