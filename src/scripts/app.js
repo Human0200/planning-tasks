@@ -61,15 +61,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Обработчик изменения фильтра пользователя
+  // Инициализируем select2 и навешиваем обработчик изменения
   $('#user-select')
     .select2()
     .on('change', function () {
-      window.filterEvents($(this).val());
+      // Приводим "all" к строке "all", а всё остальное к числу что не null
+      // Перезапрашиваем события в календаре
+      if (window.calendar) {
+        window.calendar.refetchEvents();
+      }
     });
 
-  window.filterEvents = function (selectedUser) {
-    window.currentResponsibleId = selectedUser === 'all' ? null : selectedUser;
+  // Функция фильтрации событий по выбранному пользователю
+  window.filterEvents = (selectedUser) => {
+    // Если выбран "all", сохраняем именно строку 'all' для формирования ключа кэша
     if (window.calendar) {
       window.calendar.refetchEvents();
     }

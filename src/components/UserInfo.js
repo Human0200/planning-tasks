@@ -89,6 +89,11 @@ export function UserInfo(onUserChange) {
   // Обработчик изменения селекта через jQuery для совместимости с select2
   $(selectEl).on('change', function () {
     const selectedValue = $(this).val();
+    window.currentResponsibleId = selectedValue === 'all' ? 'all' : selectedValue;
+    console.log(
+      'Выбранное значение , которое сохраняем в currentResponsibleId:',
+      window.currentResponsibleId,
+    );
     console.log('Выбранное значение:', selectedValue);
 
     setTimeout(() => {

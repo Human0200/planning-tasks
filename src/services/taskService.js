@@ -380,11 +380,13 @@ export function loadTasksForRange(
   onComplete,
   onBatchLoaded,
   onError,
-  responsibleId = null,
+  responsibleId,
 ) {
-  // Реализуем простое кэширование по диапазону и фильтру (при необходимости)
-  const cacheKey = `${responsibleId || 'all'}_${startDate}_${endDate}`;
-  if (window.taskCache && window.taskCache[cacheKey]) {
+  console.log('ОТветсвенный', responsibleId);
+  // Используем кэш ТОЛЬКО если responsibleId не задан или равен "all"
+  const useCache = !responsibleId || responsibleId === 'all';
+  const cacheKey = `${useCache ? 'all' : responsibleId}_${startDate}_${endDate}`;
+  if (useCache && window.taskCache && window.taskCache[cacheKey]) {
     console.log(`♻️ Используем кэш для ${cacheKey}`);
     onComplete(window.taskCache[cacheKey], null);
     return;
@@ -404,8 +406,8 @@ export function loadTasksForRange(
       '>=END_DATE_PLAN': startDate, // задача заканчивается после или в начале выбранного диапазона
     };
 
-    // Если выбран пользователь – добавляем фильтр по RESPONSIBLE_ID
-    if (responsibleId) {
+    // Если выбран конкретный пользователь – добавляем фильтр по RESPONSIBLE_ID
+    if (responsibleId && responsibleId !== 'all') {
       filter.RESPONSIBLE_ID = responsibleId;
     }
 
@@ -456,7 +458,7 @@ export function loadTasksForRange(
       }
 
       if (typeof onBatchLoaded === 'function' && batchTasks.length) {
-        // Можно отсортировать, если требуется
+        // Опционально: сортировка по дате создания (новые в начале)
         batchTasks.sort((a, b) => new Date(b.CREATED_DATE) - new Date(a.CREATED_DATE));
         onBatchLoaded(batchTasks);
       }
@@ -467,9 +469,11 @@ export function loadTasksForRange(
         console.log(`✅ Все задачи загружены. Всего задач: ${tasks.size}`);
         const allTasks = Array.from(tasks.values());
         console.log('Задачи, полученные из BX24:', allTasks);
-        // Сохраняем в кэш
-        window.taskCache = window.taskCache || {};
-        window.taskCache[cacheKey] = allTasks;
+        // Сохраняем в кэш только если используем кэширование
+        if (useCache) {
+          window.taskCache = window.taskCache || {};
+          window.taskCache[cacheKey] = allTasks;
+        }
         onComplete(allTasks, null);
       }
     });

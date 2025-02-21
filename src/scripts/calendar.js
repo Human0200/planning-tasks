@@ -303,7 +303,12 @@ export function initCalendar(settings, colorMap) {
       const startDate = fetchInfo.start.toISOString().split('T')[0];
       const endDate = fetchInfo.end.toISOString().split('T')[0];
       // Берём глобальный фильтр по ответственному, который обновляется в app.js
-      const responsibleId = window.currentResponsibleId || null;
+      let responsibleId = window.currentResponsibleId;
+      // Если он "all", то для loadTasksForRange ставим null
+      if (responsibleId === 'all') {
+        responsibleId = null;
+      }
+      console.log('calendar.js responsibleId:', responsibleId);
       loadTasksForRange(
         startDate,
         endDate,

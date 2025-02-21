@@ -206,7 +206,8 @@ export function showEventForm(date, eventData, options = {}) {
 
 
         <!-- Чекбокс "Учитывать затраченное время" -->
-    ${timeTrackingCheckbox}
+    ${timeTrackingCheckbox} 
+    
 
       <div class="flex justify-end gap-4">
         <button
