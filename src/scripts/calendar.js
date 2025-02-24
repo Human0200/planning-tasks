@@ -302,13 +302,14 @@ export function initCalendar(settings, colorMap) {
       console.log('Запрос событий для диапазона:', fetchInfo.start, fetchInfo.end);
       const startDate = fetchInfo.start.toISOString().split('T')[0];
       const endDate = fetchInfo.end.toISOString().split('T')[0];
-      // Берём глобальный фильтр по ответственному, который обновляется в app.js
+
+      // Берём глобальный фильтр по ответственному
       let responsibleId = window.currentResponsibleId;
-      // Если он "all", то для loadTasksForRange ставим null
       if (responsibleId === 'all') {
         responsibleId = null;
       }
       console.log('calendar.js responsibleId:', responsibleId);
+
       loadTasksForRange(
         startDate,
         endDate,
@@ -318,16 +319,39 @@ export function initCalendar(settings, colorMap) {
             failureCallback(err);
             return;
           }
-          // Преобразуем задачи в события, используя нашу функцию
-          const events = allTasks
-            .map((t) => transformTaskToEvent(t, colorMap))
+
+          console.log(`Загружено задач: ${allTasks.length}`);
+          allTasks.forEach((task, index) => {
+            console.log(`Задача ${index}: responsibleId=${task.responsibleId}`, task);
+          });
+
+          // Применяем дополнительные фильтры
+          let filteredTasks = allTasks;
+          if (window.currentShowActualTimeOnly) {
+            filteredTasks = filteredTasks.filter((task) => task.dateStart && task.closedDate);
+          }
+          if (window.currentHideNoDeadline) {
+            filteredTasks = filteredTasks.filter((task) => task.deadline);
+          }
+
+          console.log(`После доп. фильтров задач: ${filteredTasks.length}`);
+
+          // Преобразуем задачи в события
+          const events = filteredTasks
+            .map((t) => {
+              const event = transformTaskToEvent(t, colorMap);
+              console.log('Преобразование задачи в событие:', event);
+              return event;
+            })
             .filter((ev) => ev !== null)
             .flat();
+
+          console.log(`Событий для отображения: ${events.length}`);
           successCallback(events);
         },
         null,
         (error) => failureCallback(error),
-        responsibleId,
+        responsibleId, // Если API умеет фильтровать, передавайте ответственного
       );
     },
   });

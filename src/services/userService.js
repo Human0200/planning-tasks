@@ -7,20 +7,20 @@ export function getUsers(callback) {
   const cacheDuration = 24 * 60 * 60 * 1000; // 1 день в миллисекундах
   const cached = localStorage.getItem(cacheKey);
 
-  if (cached) {
-    try {
-      const { timestamp, data } = JSON.parse(cached);
-      if (Date.now() - timestamp < cacheDuration) {
-        console.log('✅ Используем кешированные данные пользователей');
-        callback(data);
-        return;
-      } else {
-        console.log('❌ Кеш устарел, загружаем заново');
-      }
-    } catch (e) {
-      console.error('Ошибка парсинга кеша пользователей:', e);
-    }
-  }
+  // if (cached) {
+  //   try {
+  //     const { timestamp, data } = JSON.parse(cached);
+  //     if (Date.now() - timestamp < cacheDuration) {
+  //       console.log('✅ Используем кешированные данные пользователей');
+  //       callback(data);
+  //       return;
+  //     } else {
+  //       console.log('❌ Кеш устарел, загружаем заново');
+  //     }
+  //   } catch (e) {
+  //     console.error('Ошибка парсинга кеша пользователей:', e);
+  //   }
+  // }
 
   BX24.callMethod('user.get', { ACTIVE: true }, (result) => {
     if (result.error()) {

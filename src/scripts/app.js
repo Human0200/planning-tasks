@@ -146,13 +146,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 2000);
 
-  window.filterEvents = function (selectedUser) {
+  window.filterEvents = (selectedUser) => {
+    console.time('filterEvents');
     if (!window.calendar) return;
 
-    const showActualTimeOnly = document.getElementById('showActualTimeOnly')?.checked;
-    const hideNoDeadline = document.getElementById('hideNoDeadline')?.checked;
-    let loaderEl = document.getElementById('loader');
+    // Обновляем глобальные переменные фильтра
+    window.currentResponsibleId = selectedUser === 'all' ? null : selectedUser;
+    window.currentShowActualTimeOnly = document.getElementById('showActualTimeOnly')?.checked;
+    window.currentHideNoDeadline = document.getElementById('hideNoDeadline')?.checked;
 
+    // Если loader ещё не создан, создаём его (или используйте уже существующий)
+    let loaderEl = document.getElementById('loader');
     if (!loaderEl) {
       loaderEl = document.createElement('div');
       loaderEl.id = 'loader';
@@ -167,46 +171,17 @@ document.addEventListener('DOMContentLoaded', () => {
       loaderEl.innerHTML = `<img src="https://bg59.online/We/photos/loading.gif" alt="Загрузка...">`;
       document.body.appendChild(loaderEl);
     }
-
-    // Показать лоадер перед фильтрацией
     loaderEl.style.display = 'block';
 
+    // Вместо ручной фильтрации вызываем refetchEvents, чтобы перезагрузить события с новыми фильтрами
+    window.calendar.refetchEvents();
+
+    // Скрываем loader после короткой задержки (или можно скрыть loader внутри successCallback events)
     setTimeout(() => {
-      window.calendar.getEvents().forEach((event) => {
-        let shouldShow = true;
-
-        // Фильтр по пользователю
-        if (selectedUser !== 'all') {
-          if (String(event.extendedProps.executor) !== String(selectedUser)) {
-            shouldShow = false;
-          }
-        }
-
-        // 🔹 Фильтр "Показать задачи по фактическому времени"
-        if (showActualTimeOnly) {
-          const hasActualTime = event.extendedProps.dateStart && event.extendedProps.closedDate;
-          if (!hasActualTime) {
-            shouldShow = false;
-          }
-        }
-
-        // 🔹 Фильтр "Убрать без крайнего срока"
-        if (hideNoDeadline) {
-          if (!event.extendedProps.deadline) {
-            shouldShow = false;
-          }
-        }
-
-        // Применяем к событию
-        event.setProp('display', shouldShow ? 'auto' : 'none');
-      });
-
-      // Скрываем лоадер после завершения фильтрации
       loaderEl.style.display = 'none';
-      console.log(
-        `✅ Фильтрация завершена, выбран: ${selectedUser}, Фактическое время: ${showActualTimeOnly}`,
-      );
-    }, 100); // Задержка в 100 мс для плавности
+      console.timeEnd('filterEvents');
+      console.log(`Фильтрация завершена, выбран: ${selectedUser}`);
+    }, 200);
   };
 
   console.log('✅ Календарь запущен');

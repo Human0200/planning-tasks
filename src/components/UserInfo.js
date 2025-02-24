@@ -80,7 +80,7 @@ export function UserInfo(onUserChange) {
     }
 
     // Значение по умолчанию – "Все"
-    $(selectEl).val('all').trigger('change');
+    // $(selectEl).val('all').trigger('change');
     if (typeof onUserChange === 'function') {
       onUserChange('all');
     }
@@ -96,40 +96,38 @@ export function UserInfo(onUserChange) {
     );
     console.log('Выбранное значение:', selectedValue);
 
-    setTimeout(() => {
-      const userAvatar = document.querySelector('#user-avatar');
-      const userName = document.querySelector('#user-name');
-      const userRole = document.querySelector('#user-role');
+    const userAvatar = document.querySelector('#user-avatar');
+    const userName = document.querySelector('#user-name');
+    const userRole = document.querySelector('#user-role');
 
-      console.log('🔍 Проверка элементов userInfo:', userAvatar, userName, userRole);
+    console.log('🔍 Проверка элементов userInfo:', userAvatar, userName, userRole);
 
-      if (!userAvatar || !userName || !userRole) {
-        console.error('❌ Ошибка: Один из элементов (avatar, name, role) не найден в DOM!');
-        return;
-      }
-      if (selectedValue === 'all') {
-        userAvatar.src = 'https://bg59.online/We/photos/all.png';
-        userName.textContent = 'Все сотрудники';
-        userRole.textContent = 'Просмотр всех задач';
-      } else {
-        getUserData(selectedValue, (selectedUser) => {
-          console.log('Полученные данные пользователя:', selectedUser);
-          if (selectedUser) {
-            userAvatar.src =
-              selectedUser.PERSONAL_PHOTO || 'https://bg59.online/We/photos/avatar.png';
-            userName.textContent = `${selectedUser.NAME} ${selectedUser.LAST_NAME}`;
-            userRole.textContent = selectedUser.WORK_POSITION || 'Пользователь';
-          }
-        });
-      }
-      // 🔹 Добавляем вызов фильтрации после смены пользователя
-      if (typeof window.filterEvents === 'function') {
-        console.log(`🔄 Запускаем фильтрацию для пользователя ${selectedValue}`);
-        window.filterEvents(selectedValue);
-      } else {
-        console.error('❌ Ошибка: Функция filterEvents не найдена!');
-      }
-    }, 300); // Увеличил задержку до 300 мс для DOM-рендеринга
+    if (!userAvatar || !userName || !userRole) {
+      console.error('❌ Ошибка: Один из элементов (avatar, name, role) не найден в DOM!');
+      return;
+    }
+    if (selectedValue === 'all') {
+      userAvatar.src = 'https://bg59.online/We/photos/all.png';
+      userName.textContent = 'Все сотрудники';
+      userRole.textContent = 'Просмотр всех задач';
+    } else {
+      getUserData(selectedValue, (selectedUser) => {
+        console.log('Полученные данные пользователя:', selectedUser);
+        if (selectedUser) {
+          userAvatar.src =
+            selectedUser.PERSONAL_PHOTO || 'https://bg59.online/We/photos/avatar.png';
+          userName.textContent = `${selectedUser.NAME} ${selectedUser.LAST_NAME}`;
+          userRole.textContent = selectedUser.WORK_POSITION || 'Пользователь';
+        }
+      });
+    }
+    // 🔹 Добавляем вызов фильтрации после смены пользователя
+    if (typeof window.filterEvents === 'function') {
+      console.log(`🔄 Запускаем фильтрацию для пользователя ${selectedValue}`);
+      window.filterEvents(selectedValue);
+    } else {
+      console.error('❌ Ошибка: Функция filterEvents не найдена!');
+    }
   });
 
   return userInfoContainer;

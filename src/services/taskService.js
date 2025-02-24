@@ -382,8 +382,7 @@ export function loadTasksForRange(
   onError,
   responsibleId,
 ) {
-  console.log('ОТветсвенный', responsibleId);
-  // Используем кэш ТОЛЬКО если responsibleId не задан или равен "all"
+  // Используем кэш только если responsibleId не задан или равен "all"
   const useCache = !responsibleId || responsibleId === 'all';
   const cacheKey = `${useCache ? 'all' : responsibleId}_${startDate}_${endDate}`;
   if (useCache && window.taskCache && window.taskCache[cacheKey]) {
@@ -402,8 +401,8 @@ export function loadTasksForRange(
 
     // Формируем фильтр: всегда ограничиваем по диапазону дат
     let filter = {
-      '<=START_DATE_PLAN': endDate, // задача начинается до или в конце выбранного диапазона
-      '>=END_DATE_PLAN': startDate, // задача заканчивается после или в начале выбранного диапазона
+      '<=START_DATE_PLAN': endDate,
+      '>=END_DATE_PLAN': startDate,
     };
 
     // Если выбран конкретный пользователь – добавляем фильтр по RESPONSIBLE_ID
@@ -458,7 +457,7 @@ export function loadTasksForRange(
       }
 
       if (typeof onBatchLoaded === 'function' && batchTasks.length) {
-        // Опционально: сортировка по дате создания (новые в начале)
+        // Сортируем по дате создания (новые в начале)
         batchTasks.sort((a, b) => new Date(b.CREATED_DATE) - new Date(a.CREATED_DATE));
         onBatchLoaded(batchTasks);
       }
@@ -469,7 +468,7 @@ export function loadTasksForRange(
         console.log(`✅ Все задачи загружены. Всего задач: ${tasks.size}`);
         const allTasks = Array.from(tasks.values());
         console.log('Задачи, полученные из BX24:', allTasks);
-        // Сохраняем в кэш только если используем кэширование
+        // Сохраняем в кэш, только если используем кэширование
         if (useCache) {
           window.taskCache = window.taskCache || {};
           window.taskCache[cacheKey] = allTasks;
