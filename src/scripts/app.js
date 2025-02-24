@@ -155,6 +155,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.currentShowActualTimeOnly = document.getElementById('showActualTimeOnly')?.checked;
     window.currentHideNoDeadline = document.getElementById('hideNoDeadline')?.checked;
 
+    // Удаляем все текущие события перед обновлением
+    console.log('🧹 Очищаем все события перед фильтрацией...');
+    window.calendar.getEvents().forEach((event) => event.remove());
+
     // Если loader ещё не создан, создаём его (или используйте уже существующий)
     let loaderEl = document.getElementById('loader');
     if (!loaderEl) {
@@ -173,7 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     loaderEl.style.display = 'block';
 
-    // Вместо ручной фильтрации вызываем refetchEvents, чтобы перезагрузить события с новыми фильтрами
     window.calendar.refetchEvents();
 
     // Скрываем loader после короткой задержки (или можно скрыть loader внутри successCallback events)

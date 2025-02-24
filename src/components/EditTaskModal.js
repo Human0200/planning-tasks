@@ -223,47 +223,48 @@ export function openEditModal(taskId) {
       }
 
       console.log(`✅ Задача ${taskId} обновлена!`, res);
-      // Закрываем модальное окно
       modalInstance.close();
 
-      // Обновление задачи в календаре без перезагрузки
       if (window.calendar) {
         let event = window.calendar.getEventById(taskId);
         const executorId = updatedTask.executor;
         const color = window.colorMap?.[executorId] || '#cccccc';
 
+        // Удаляем старое событие
         if (event) {
-          event.setProp('title', updatedTask.title);
-          event.setDates(updatedTask.start, updatedTask.end);
-          event.setProp('backgroundColor', color);
-          event.setProp('borderColor', color);
-        } else {
-          window.calendar.addEvent({
-            id: taskId,
-            title: updatedTask.title,
-            start: updatedTask.start,
-            end: updatedTask.end,
-            backgroundColor: color,
-            borderColor: color,
-            textColor: '#ffffff',
-            extendedProps: {
-              originalStart: updatedTask.start,
-              originalEnd: updatedTask.end,
-              executor: executorId,
-              deadline: updatedTask.deadline,
-              allowTimeTracking: updatedTask.allowTimeTracking,
-            },
-          });
+          event.remove();
         }
+
+        // Добавляем обновленное событие
+        window.calendar.addEvent({
+          id: taskId,
+          title: updatedTask.title,
+          start: updatedTask.start,
+          end: updatedTask.end,
+          backgroundColor: color,
+          borderColor: color,
+          textColor: '#ffffff',
+          extendedProps: {
+            originalStart: updatedTask.start,
+            originalEnd: updatedTask.end,
+            executor: executorId,
+            deadline: updatedTask.deadline,
+            allowTimeTracking: updatedTask.allowTimeTracking,
+          },
+        });
+
+        console.log(`🎯 Добавлено/обновлено событие ${taskId} в календаре.`);
       }
 
-      // Диспатчим событие, чтобы уведомить о том, что задача обновлена
+      // Диспатчим событие для обновления UI
       window.dispatchEvent(new CustomEvent('taskUpdated', { detail: { taskId } }));
 
-      // 🔹 После добавления/обновления вызываем фильтрацию по пользователю
-      console.log('🔄 Фильтрация событий после обновления');
-      const selectedUser = document.getElementById('user-select')?.value || 'all'; // Получаем текущего пользователя
-      window.filterEvents(selectedUser);
+      // 🔥 Перезапрашиваем события с сервера, но с задержкой (чтобы API успел обработать)
+      setTimeout(() => {
+        console.log('🔄 Запрос свежих данных из Bitrix24');
+        const selectedUser = document.getElementById('user-select')?.value || 'all';
+        window.filterEvents(selectedUser);
+      }, 2000); // Даем серверу 2 секунды на обновление данных
     });
   });
 

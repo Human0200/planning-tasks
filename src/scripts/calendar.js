@@ -309,50 +309,63 @@ export function initCalendar(settings, colorMap) {
         responsibleId = null;
       }
       console.log('calendar.js responsibleId:', responsibleId);
+      setTimeout(() => {
+        loadTasksForRange(
+          startDate,
+          endDate,
+          (allTasks, err) => {
+            if (err) {
+              console.error('❌ Ошибка загрузки задач:', err);
+              failureCallback(err);
+              return;
+            }
 
-      loadTasksForRange(
-        startDate,
-        endDate,
-        (allTasks, err) => {
-          if (err) {
-            console.error('❌ Ошибка загрузки задач:', err);
-            failureCallback(err);
-            return;
-          }
+            console.log(`Загружено задач: ${allTasks.length}`);
+            allTasks.forEach((task, index) => {
+              console.log(`Задача ${index}: responsibleId=${task.responsibleId}`, task);
+            });
 
-          console.log(`Загружено задач: ${allTasks.length}`);
-          allTasks.forEach((task, index) => {
-            console.log(`Задача ${index}: responsibleId=${task.responsibleId}`, task);
-          });
+            // Применяем дополнительные фильтры
+            let filteredTasks = allTasks;
+            if (window.currentShowActualTimeOnly) {
+              filteredTasks = filteredTasks.filter((task) => task.dateStart && task.closedDate);
+            }
+            if (window.currentHideNoDeadline) {
+              filteredTasks = filteredTasks.filter((task) => task.deadline);
+            }
 
-          // Применяем дополнительные фильтры
-          let filteredTasks = allTasks;
-          if (window.currentShowActualTimeOnly) {
-            filteredTasks = filteredTasks.filter((task) => task.dateStart && task.closedDate);
-          }
-          if (window.currentHideNoDeadline) {
-            filteredTasks = filteredTasks.filter((task) => task.deadline);
-          }
+            console.log(`После доп. фильтров задач: ${filteredTasks.length}`);
 
-          console.log(`После доп. фильтров задач: ${filteredTasks.length}`);
+            // Преобразуем задачи в события
+            const events = filteredTasks
+              .map((t) => {
+                const event = transformTaskToEvent(t, colorMap);
+                console.log('Преобразование задачи в событие:', event);
+                return event;
+              })
+              .filter((ev) => ev !== null)
+              .flat();
 
-          // Преобразуем задачи в события
-          const events = filteredTasks
-            .map((t) => {
-              const event = transformTaskToEvent(t, colorMap);
-              console.log('Преобразование задачи в событие:', event);
-              return event;
-            })
-            .filter((ev) => ev !== null)
-            .flat();
+            // ★ Дополнительное логирование
+            console.log('🔄 Передача событий в календарь:', events);
+            console.log(`Событий для отображения: ${events.length}`);
 
-          console.log(`Событий для отображения: ${events.length}`);
-          successCallback(events);
-        },
-        null,
-        (error) => failureCallback(error),
-        responsibleId, // Если API умеет фильтровать, передавайте ответственного
-      );
+            // ★ Если нужно очистить старые события, можно добавить:
+            // window.calendar.getEvents().forEach(ev => ev.remove());
+
+            successCallback(events);
+
+            // ★ Если нужно, через небольшую задержку вывести все события, чтобы убедиться, что они есть
+            setTimeout(() => {
+              const currentEvents = window.calendar.getEvents();
+              console.log('📌 События в календаре после successCallback:', currentEvents);
+            }, 300);
+          },
+          null,
+          (error) => failureCallback(error),
+          responsibleId, // Если API умеет фильтровать, передавайте ответственного
+        );
+      }, 500);
     },
   });
 
