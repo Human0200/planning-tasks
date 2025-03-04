@@ -10,99 +10,113 @@ function formatDateTimeLocal(date) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
-export function showEventForm(date, eventData, options = {}) {
-  const colorMap = options.colorMap || {}; // Получаем переданную карту цветов
-  const isEditMode = !!eventData;
-
-  // Используйте eventData?.extendedProps вместо eventData?.extendedProps
-  console.log('🔍 eventData?.extendedProps:', eventData?.extendedProps);
-  console.log('🔍 eventData:', eventData);
-
-  // Проверяем флаг "Весь день"
-  const allDay = options.allDay === true || eventData?.extendedProps?.allDay === true;
-
-  const settings = window.calendarSettings || { slotMinTime: '08:00', slotMaxTime: '18:00' };
-
-  let startDate,
-    formattedDate,
-    formattedFinishDate,
-    formattedStartTime,
-    formattedEndTime,
-    formattedStartDateTime,
-    formattedFinishDateTime;
-
-  if (isEditMode) {
-    // Редактирование
-    startDate = new Date(eventData?.extendedProps?.originalStart);
-    const endDate = eventData?.extendedProps.originalEnd
-      ? new Date(eventData?.extendedProps.originalEnd)
-      : new Date(startDate.getTime() + 30 * 60 * 1000);
-
-    formattedStartDateTime = formatDateTimeLocal(startDate);
-    formattedFinishDateTime = formatDateTimeLocal(endDate);
-  } else {
-    // Создание
-    startDate = new Date(date);
-    const endDate = new Date(startDate.getTime() + 30 * 60 * 1000);
-    formattedStartDateTime = formatDateTimeLocal(startDate);
-    formattedFinishDateTime = formatDateTimeLocal(endDate);
-
-    if (allDay) {
-      formattedStartTime = settings.slotMinTime; // или что-то вроде getUserCalendarStart()
-      formattedEndTime = settings.slotMaxTime;
+function loadUserColors(callback) {
+  BX24.callMethod('app.option.get', { option: 'user_colors' }, (res) => {
+    if (res.error()) {
+      console.error('❌ Ошибка загрузки цветов пользователей:', res.error());
+      callback({}); // Возвращаем пустой объект в случае ошибки
+    } else {
+      console.log('✅ Загружены цвета пользователей:', res.data());
+      callback(res.data() || {}); // Возвращаем цвета или пустой объект
     }
-  }
+  });
+}
 
-  const titleValue = eventData?.title || '';
-  const deadlineValue = eventData?.extendedProps?.deadline
-    ? eventData?.extendedProps.deadline.split('T')[0]
-    : '';
+export function showEventForm(date, eventData, options = {}) {
+  loadUserColors((colorMap) => {
+    const colorMap = options.colorMap || {}; // Получаем переданную карту цветов
+    const isEditMode = !!eventData;
 
-  const commentValue = eventData?.extendedProps?.comment || '';
-  const groupIdValue =
-    isEditMode && eventData?.extendedProps?.groupId ? eventData?.extendedProps.groupId : '';
+    // Используйте eventData?.extendedProps вместо eventData?.extendedProps
+    console.log('🔍 eventData?.extendedProps:', eventData?.extendedProps);
+    console.log('🔍 eventData:', eventData);
 
-  const timeEstimateValue =
-    isEditMode && eventData?.extendedProps?.timeEstimate
-      ? (eventData?.extendedProps.timeEstimate / 3600).toFixed(2)
+    // Проверяем флаг "Весь день"
+    const allDay = options.allDay === true || eventData?.extendedProps?.allDay === true;
+
+    const settings = window.calendarSettings || { slotMinTime: '08:00', slotMaxTime: '18:00' };
+
+    let startDate,
+      formattedDate,
+      formattedFinishDate,
+      formattedStartTime,
+      formattedEndTime,
+      formattedStartDateTime,
+      formattedFinishDateTime;
+
+    if (isEditMode) {
+      // Редактирование
+      startDate = new Date(eventData?.extendedProps?.originalStart);
+      const endDate = eventData?.extendedProps.originalEnd
+        ? new Date(eventData?.extendedProps.originalEnd)
+        : new Date(startDate.getTime() + 30 * 60 * 1000);
+
+      formattedStartDateTime = formatDateTimeLocal(startDate);
+      formattedFinishDateTime = formatDateTimeLocal(endDate);
+    } else {
+      // Создание
+      startDate = new Date(date);
+      const endDate = new Date(startDate.getTime() + 30 * 60 * 1000);
+      formattedStartDateTime = formatDateTimeLocal(startDate);
+      formattedFinishDateTime = formatDateTimeLocal(endDate);
+
+      if (allDay) {
+        formattedStartTime = settings.slotMinTime; // или что-то вроде getUserCalendarStart()
+        formattedEndTime = settings.slotMaxTime;
+      }
+    }
+
+    const titleValue = eventData?.title || '';
+    const deadlineValue = eventData?.extendedProps?.deadline
+      ? eventData?.extendedProps.deadline.split('T')[0]
       : '';
 
-  const actualStartDate = eventData?.extendedProps?.dateStart
-    ? new Date(eventData?.extendedProps.dateStart).toISOString().split('T')[0]
-    : '—';
+    const commentValue = eventData?.extendedProps?.comment || '';
+    const groupIdValue =
+      isEditMode && eventData?.extendedProps?.groupId ? eventData?.extendedProps.groupId : '';
 
-  const actualFinishDate = eventData?.extendedProps?.closedDate
-    ? new Date(eventData?.extendedProps.closedDate).toISOString().split('T')[0]
-    : '—';
+    const timeEstimateValue =
+      isEditMode && eventData?.extendedProps?.timeEstimate
+        ? (eventData?.extendedProps.timeEstimate / 3600).toFixed(2)
+        : '';
 
-  const isNew = !isEditMode;
-  const submitButtonText = isNew ? 'Создать' : 'Сохранить изменения';
-  const modalTitle = isNew ? 'Создать задачу' : 'Редактировать задачу';
-  const deleteButtonHTML = !isNew
-    ? `<button type="button" id="delete-event" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700">Удалить задачу</button>`
-    : '';
+    const actualStartDate = eventData?.extendedProps?.dateStart
+      ? new Date(eventData?.extendedProps.dateStart).toISOString().split('T')[0]
+      : '—';
 
-  const globalSelect = document.querySelector('#user-select');
-  const userFilterValue = globalSelect?.value;
-  let executorSelectHTML = '';
-  if (userFilterValue === 'all') {
-    executorSelectHTML = `
+    const actualFinishDate = eventData?.extendedProps?.closedDate
+      ? new Date(eventData?.extendedProps.closedDate).toISOString().split('T')[0]
+      : '—';
+
+    const isNew = !isEditMode;
+    const submitButtonText = isNew ? 'Создать' : 'Сохранить изменения';
+    const modalTitle = isNew ? 'Создать задачу' : 'Редактировать задачу';
+    const deleteButtonHTML = !isNew
+      ? `<button type="button" id="delete-event" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700">Удалить задачу</button>`
+      : '';
+
+    const globalSelect = document.querySelector('#user-select');
+    const userFilterValue = globalSelect?.value;
+    let executorSelectHTML = '';
+    if (userFilterValue === 'all') {
+      executorSelectHTML = `
       <label class="block text-sm font-medium text-gray-700">Исполнитель</label>
       <div id="executor-container" class="custom-executor-wrapper mb-4"></div>
     `;
-  }
+    }
 
-  // Если allDay = true -> используем атрибут readonly в полях
-  const readonlyAttr = allDay ? 'readonly' : '';
+    // Если allDay = true -> используем атрибут readonly в полях
+    const readonlyAttr = allDay ? 'readonly' : '';
 
-  const allowTimeTrackingValue = isEditMode && eventData?.extendedProps?.allowTimeTracking === 'Y';
-  const actualTimeSpentValue =
-    isEditMode && eventData?.extendedProps?.durationFact
-      ? (eventData.extendedProps.durationFact / 3600).toFixed(2)
-      : '0.00';
-  // Блок с фактическими датами (только для режима редактирования)
-  const actualTimeBlock = isEditMode
-    ? `
+    const allowTimeTrackingValue =
+      isEditMode && eventData?.extendedProps?.allowTimeTracking === 'Y';
+    const actualTimeSpentValue =
+      isEditMode && eventData?.extendedProps?.durationFact
+        ? (eventData.extendedProps.durationFact / 3600).toFixed(2)
+        : '0.00';
+    // Блок с фактическими датами (только для режима редактирования)
+    const actualTimeBlock = isEditMode
+      ? `
   <div class="grid grid-cols-2 gap-4 bg-gray-100 p-2 rounded-md mb-4">
     <div>
       <label class="block text-sm font-medium text-gray-700">Фактическое начало</label>
@@ -118,11 +132,11 @@ export function showEventForm(date, eventData, options = {}) {
     </div>
   </div>
   `
-    : '';
+      : '';
 
-  const taskLinkBlock =
-    isEditMode && eventData?.extendedProps?.bitrix24Id
-      ? `
+    const taskLinkBlock =
+      isEditMode && eventData?.extendedProps?.bitrix24Id
+        ? `
     <div>
       <label class="block text-sm font-medium text-gray-700">Задача в Bitrix24</label>
       <div
@@ -134,9 +148,9 @@ export function showEventForm(date, eventData, options = {}) {
       </div>
     </div>
   `
-      : '';
+        : '';
 
-  const timeTrackingCheckbox = `
+    const timeTrackingCheckbox = `
   <div class="flex items-center mb-4">
     <input type="checkbox" id="allow-time-tracking" class="mr-2" ${
       allowTimeTrackingValue ? 'checked' : ''
@@ -146,8 +160,8 @@ export function showEventForm(date, eventData, options = {}) {
     </label>
   </div>
 `;
-  // Генерируем форму
-  const formContent = `
+    // Генерируем форму
+    const formContent = `
     <form id="event-form" class="w-full">
      ${taskLinkBlock}
     <label class="block text-sm font-medium text-gray-700">Название задачи</label>
@@ -224,293 +238,301 @@ export function showEventForm(date, eventData, options = {}) {
     </form>
   `;
 
-  console.log('🔍 Проверка isEditMode:', isEditMode);
-  console.log('🔍 eventData?.extendedProps:', eventData?.extendedProps);
-  console.log('🔍 bitrix24Id:', eventData?.extendedProps?.bitrix24Id);
+    console.log('🔍 Проверка isEditMode:', isEditMode);
+    console.log('🔍 eventData?.extendedProps:', eventData?.extendedProps);
+    console.log('🔍 bitrix24Id:', eventData?.extendedProps?.bitrix24Id);
 
-  const modalInstance = createModal(modalTitle, formContent, { width: '600px', maxHeight: '80vh' });
+    const modalInstance = createModal(modalTitle, formContent, {
+      width: '600px',
+      maxHeight: '80vh',
+    });
 
-  if (isEditMode && eventData?.extendedProps?.bitrix24Id) {
-    console.log('⏳ Добавляем обработчик для клика по названию задачи...');
+    if (isEditMode && eventData?.extendedProps?.bitrix24Id) {
+      console.log('⏳ Добавляем обработчик для клика по названию задачи...');
 
-    setTimeout(() => {
-      const taskTitleElement = document.getElementById('task-title-link');
-      if (taskTitleElement) {
-        console.log('✅ Найден элемент task-title-link, добавляем обработчик клика');
+      setTimeout(() => {
+        const taskTitleElement = document.getElementById('task-title-link');
+        if (taskTitleElement) {
+          console.log('✅ Найден элемент task-title-link, добавляем обработчик клика');
 
-        taskTitleElement.addEventListener('click', () => {
-          const taskId = taskTitleElement.getAttribute('data-task-id');
-          const executorId = eventData?.extendedProps.executor || '0'; // Если нет, подставляем 0
-          const taskUrl = `/company/personal/user/${executorId}/tasks/task/view/${taskId}/`;
+          taskTitleElement.addEventListener('click', () => {
+            const taskId = taskTitleElement.getAttribute('data-task-id');
+            const executorId = eventData?.extendedProps.executor || '0'; // Если нет, подставляем 0
+            const taskUrl = `/company/personal/user/${executorId}/tasks/task/view/${taskId}/`;
 
-          console.log('🔗 Открываем задачу:', taskUrl); // Логируем перед открытием
+            console.log('🔗 Открываем задачу:', taskUrl); // Логируем перед открытием
 
-          BX24.openPath(taskUrl, function (result) {
-            console.log('✅ Задача открыта в слайдере:', taskUrl, 'Результат:', result);
+            BX24.openPath(taskUrl, function (result) {
+              console.log('✅ Задача открыта в слайдере:', taskUrl, 'Результат:', result);
+            });
           });
-        });
-      } else {
-        console.warn('⚠️ Не найден элемент task-title-link! Проверь разметку.');
-      }
-    }, 0); // Гарантируем, что элемент загружен перед добавлением обработчика
-  }
-
-  const finishDatetimeInput = document.getElementById('event-finish-datetime');
-  const deadlineInput = document.getElementById('event-deadline-datetime');
-
-  if (finishDatetimeInput && deadlineInput && settings?.dynamicDeadline) {
-    deadlineInput.value = finishDatetimeInput.value;
-  }
-
-  if (finishDatetimeInput && deadlineInput) {
-    finishDatetimeInput.addEventListener('change', (e) => {
-      if (settings?.dynamicDeadline) {
-        deadlineInput.value = e.target.value;
-      }
-    });
-  }
-
-  // Загрузка проектов (групп)
-  const projContainer = document.getElementById('project-container');
-  if (projContainer) {
-    const projectSelect = document.createElement('select');
-    projectSelect.id = 'event-project';
-    // Применяем те же классы, что и у селекта исполнителей
-    projectSelect.className = 'custom-executor border rounded w-full p-2 mb-4';
-
-    const defOpt = document.createElement('option');
-    defOpt.value = '';
-    defOpt.textContent = 'Выберите проект';
-    projectSelect.appendChild(defOpt);
-    projContainer.appendChild(projectSelect);
-
-    // Загрузка списка проектов
-    getProjects((groups) => {
-      console.log('Загружены проекты:', groups);
-      groups.forEach((g) => {
-        const opt = document.createElement('option');
-        opt.value = g.ID;
-        opt.textContent = g.NAME;
-        projectSelect.appendChild(opt);
-      });
-      // Если редактирование и уже есть groupId, подставляем его:
-      if (isEditMode && groupIdValue) {
-        projectSelect.value = String(groupIdValue);
-      }
-      // Инициализация Select2 для проекта
-      if ($.fn.select2) {
-        $(projectSelect).select2({
-          placeholder: 'Выберите проект',
-          allowClear: true,
-          width: 'style',
-          dropdownParent: $(modalInstance.modalElement),
-        });
-        if (isEditMode && groupIdValue) {
-          $(projectSelect).val(String(groupIdValue)).trigger('change');
+        } else {
+          console.warn('⚠️ Не найден элемент task-title-link! Проверь разметку.');
         }
-      }
-    });
-  }
+      }, 0); // Гарантируем, что элемент загружен перед добавлением обработчика
+    }
 
-  // Кнопка "Отмена"
-  document.getElementById('cancel-event').addEventListener('click', () => {
-    modalInstance.close();
-  });
+    const finishDatetimeInput = document.getElementById('event-finish-datetime');
+    const deadlineInput = document.getElementById('event-deadline-datetime');
 
-  // Динамическая загрузка исполнителей, если userFilterValue === 'all'
-  if (userFilterValue === 'all') {
-    const executorBlock = document.getElementById('executor-container');
-    if (executorBlock) {
-      getUsers((users) => {
-        const selectEl = document.createElement('select');
-        selectEl.id = 'event-executor';
-        selectEl.className = 'custom-executor border rounded w-full p-2 mb-4';
+    if (finishDatetimeInput && deadlineInput && settings?.dynamicDeadline) {
+      deadlineInput.value = finishDatetimeInput.value;
+    }
 
-        const defaultOpt = document.createElement('option');
-        defaultOpt.value = '';
-        defaultOpt.textContent = 'Выберите исполнителя';
-        selectEl.appendChild(defaultOpt);
+    if (finishDatetimeInput && deadlineInput) {
+      finishDatetimeInput.addEventListener('change', (e) => {
+        if (settings?.dynamicDeadline) {
+          deadlineInput.value = e.target.value;
+        }
+      });
+    }
 
-        users.forEach((u) => {
+    // Загрузка проектов (групп)
+    const projContainer = document.getElementById('project-container');
+    if (projContainer) {
+      const projectSelect = document.createElement('select');
+      projectSelect.id = 'event-project';
+      // Применяем те же классы, что и у селекта исполнителей
+      projectSelect.className = 'custom-executor border rounded w-full p-2 mb-4';
+
+      const defOpt = document.createElement('option');
+      defOpt.value = '';
+      defOpt.textContent = 'Выберите проект';
+      projectSelect.appendChild(defOpt);
+      projContainer.appendChild(projectSelect);
+
+      // Загрузка списка проектов
+      getProjects((groups) => {
+        console.log('Загружены проекты:', groups);
+        groups.forEach((g) => {
           const opt = document.createElement('option');
-          opt.value = u.ID;
-          opt.textContent = `${u.NAME} ${u.LAST_NAME}`;
-          selectEl.appendChild(opt);
+          opt.value = g.ID;
+          opt.textContent = g.NAME;
+          projectSelect.appendChild(opt);
         });
-
-        executorBlock.appendChild(selectEl);
-
-        // Инициализируем select2
+        // Если редактирование и уже есть groupId, подставляем его:
+        if (isEditMode && groupIdValue) {
+          projectSelect.value = String(groupIdValue);
+        }
+        // Инициализация Select2 для проекта
         if ($.fn.select2) {
-          $(selectEl).select2({
-            placeholder: 'Выберите исполнителя',
+          $(projectSelect).select2({
+            placeholder: 'Выберите проект',
             allowClear: true,
             width: 'style',
             dropdownParent: $(modalInstance.modalElement),
           });
-          if (isEditMode && eventData?.extendedProps?.executor) {
-            $(selectEl).val(eventData?.extendedProps.executor).trigger('change');
+          if (isEditMode && groupIdValue) {
+            $(projectSelect).val(String(groupIdValue)).trigger('change');
           }
         }
       });
     }
-  }
 
-  // Обработчик сабмита формы
-  document.getElementById('event-form').addEventListener('submit', (e) => {
-    e.preventDefault();
+    // Кнопка "Отмена"
+    document.getElementById('cancel-event').addEventListener('click', () => {
+      modalInstance.close();
+    });
 
-    const title = document.getElementById('event-title').value.trim() || 'Без названия';
-    const startDateTime = document.getElementById('event-start-datetime').value;
-    const finishDateTime = document.getElementById('event-finish-datetime').value;
-    const deadlineDateTime = document.getElementById('event-deadline-datetime').value;
-    const comment = document.getElementById('event-comment').value.trim();
-    const projectSelect = document.getElementById('event-project');
-    const groupId = projectSelect?.value ? parseInt(projectSelect.value, 10) : null;
-    const timeEstInput = document.getElementById('event-time-estimate');
-    const hours = parseFloat(timeEstInput.value) || 0;
-    const timeEstimateSec = Math.round(hours * 3600);
-    const allowTimeTrackingChecked = document.getElementById('allow-time-tracking').checked;
-    const allowTimeTracking = allowTimeTrackingChecked ? 'Y' : 'N';
-
-    let executor = '';
+    // Динамическая загрузка исполнителей, если userFilterValue === 'all'
     if (userFilterValue === 'all') {
-      const exSel = document.getElementById('event-executor');
-      executor = exSel?.value || '';
-    } else {
-      executor = userFilterValue;
-    }
+      const executorBlock = document.getElementById('executor-container');
+      if (executorBlock) {
+        getUsers((users) => {
+          const selectEl = document.createElement('select');
+          selectEl.id = 'event-executor';
+          selectEl.className = 'custom-executor border rounded w-full p-2 mb-4';
 
-    let startTimeVal, endTimeVal;
-    if (allDay) {
-      // "Весь день" = 09:00–18:00
-      startTimeVal = settings.slotMinTime;
-      endTimeVal = settings.slotMaxTime;
-    } else {
-      // Не "Весь день" — берём инпуты
-      startTimeVal = document.getElementById('event-start-time')?.value || settings.slotMinTime;
-      endTimeVal = document.getElementById('event-end-time')?.value || settings.slotMaxTime;
-    }
+          const defaultOpt = document.createElement('option');
+          defaultOpt.value = '';
+          defaultOpt.textContent = 'Выберите исполнителя';
+          selectEl.appendChild(defaultOpt);
 
-    const eventStart = startDateTime ? `${startDateTime}:00` : null;
-    const eventEnd = finishDateTime ? `${finishDateTime}:00` : null;
-    const eventDeadline = deadlineDateTime ? `${deadlineDateTime}:00` : null; // Исправлено
-    console.log('COMMENT', comment);
-    const taskData = {
-      title,
-      comment,
-      executor,
-      start: eventStart,
-      comment,
-      end: eventEnd,
-      deadline: eventDeadline, // Здесь тоже исправлено
-      allDay: allDay, // Приводим к формату Bitrix
-      timeEstimate: timeEstimateSec,
-      groupId,
-      allowTimeTracking, // ✅ Передаем в задачу
-    };
-
-    console.log('Смотрим на отправленный массив данных для задачи:', taskData);
-    let responsibleName = '';
-    if (userFilterValue !== 'all') {
-      // Если выбран конкретный пользователь — берём текст выбранного option
-      responsibleName = globalSelect?.selectedOptions[0]?.textContent || '';
-    } else {
-      // Если выбран вариант "all", то из селекта исполнителя
-      const exSel = document.getElementById('event-executor');
-      responsibleName = exSel?.selectedOptions[0]?.textContent || '';
-    }
-
-    if (isNew) {
-      // Создание задачи
-      createTask(taskData, (res, err) => {
-        if (err) {
-          alert('Ошибка создания задачи');
-        } else {
-          if (window.calendar && res?.task?.id) {
-            const realId = res.task.id;
-            const newTaskColor = colorMap[executor] || '#cccccc'; // Определяем цвет
-            console.log('🚀 Новый цвет задачи:', newTaskColor);
-
-            // Формируем объект задачи в том же формате, что используется в transformTaskToEvent:
-            const newTaskObject = {
-              ...taskData,
-              id: realId,
-              // Для незавершённых задач используем плановые даты:
-              startDatePlan: eventStart,
-              endDatePlan: eventEnd,
-              // Если задача "на весь день", выставляем xmlId:
-              xmlId: allDay ? 'ALLDAY' : null,
-              responsibleId: executor,
-              comment,
-              responsibleName,
-            };
-
-            // Преобразуем задачу в событие (возможно, массив сегментов)
-            const transformed = transformTaskToEvent(newTaskObject, colorMap);
-            const eventsToAdd = Array.isArray(transformed) ? transformed : [transformed];
-
-            // Добавляем каждый сегмент в календарь
-            eventsToAdd.forEach((ev) => {
-              // ✅ Добавляем комментарий в extendedProps перед добавлением события
-              ev.extendedProps = {
-                ...ev.extendedProps,
-                comment: newTaskObject.comment, // Добавляем комментарий
-              };
-
-              window.calendar.addEvent(ev);
-            });
-
-            console.log('✅ Задача создана:', realId);
-          }
-        }
-      });
-    } else {
-      // Редактирование задачи
-      const taskId = eventData?.extendedProps?.bitrix24Id || eventData?.id;
-      updateTask(taskId, taskData, (res, err) => {
-        if (err) {
-          alert('Ошибка обновления задачи');
-        } else {
-          // Формируем обновлённый объект задачи для преобразования
-          const updatedTaskObject = {
-            ...taskData,
-            id: taskId,
-            comment,
-            startDatePlan: eventStart,
-            endDatePlan: eventEnd,
-            xmlId: allDay ? 'ALLDAY' : null,
-            responsibleId: executor,
-            responsibleName,
-            allowTimeTracking, // ✅ Передаем в задачу
-          };
-
-          const transformed = transformTaskToEvent(updatedTaskObject, colorMap);
-          const updatedEvent = Array.isArray(transformed) ? transformed[0] : transformed;
-
-          // ✅ Обновляем свойства текущего события в календаре
-          eventData.setProp('title', updatedEvent.title);
-          eventData.setStart(updatedEvent.start);
-          eventData.setEnd(updatedEvent.end);
-
-          // ✅ Обновляем extendedProps, сохраняя старые данные и добавляя новые
-          const updatedExtendedProps = {
-            ...(eventData.extendedProps || {}), // Сохраняем все старые extendedProps
-            ...updatedEvent.extendedProps, // Обновляем новыми данными
-            comment: updatedTaskObject.comment || '', // Добавляем/обновляем комментарий
-          };
-
-          Object.keys(updatedExtendedProps).forEach((key) => {
-            eventData.setExtendedProp(key, updatedExtendedProps[key]);
+          users.forEach((u) => {
+            const opt = document.createElement('option');
+            opt.value = u.ID;
+            opt.textContent = `${u.NAME} ${u.LAST_NAME}`;
+            selectEl.appendChild(opt);
           });
 
-          console.log('✅ Задача обновлена:', taskId);
-        }
-      });
+          executorBlock.appendChild(selectEl);
+
+          // Инициализируем select2
+          if ($.fn.select2) {
+            $(selectEl).select2({
+              placeholder: 'Выберите исполнителя',
+              allowClear: true,
+              width: 'style',
+              dropdownParent: $(modalInstance.modalElement),
+            });
+            if (isEditMode && eventData?.extendedProps?.executor) {
+              $(selectEl).val(eventData?.extendedProps.executor).trigger('change');
+            }
+          }
+        });
+      }
     }
 
-    modalInstance.close();
-  });
+    // Обработчик сабмита формы
+    document.getElementById('event-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('event-title').value.trim() || 'Без названия';
+      const startDateTime = document.getElementById('event-start-datetime').value;
+      const finishDateTime = document.getElementById('event-finish-datetime').value;
+      const deadlineDateTime = document.getElementById('event-deadline-datetime').value;
+      const comment = document.getElementById('event-comment').value.trim();
+      const projectSelect = document.getElementById('event-project');
+      const groupId = projectSelect?.value ? parseInt(projectSelect.value, 10) : null;
+      const timeEstInput = document.getElementById('event-time-estimate');
+      const hours = parseFloat(timeEstInput.value) || 0;
+      const timeEstimateSec = Math.round(hours * 3600);
+      const allowTimeTrackingChecked = document.getElementById('allow-time-tracking').checked;
+      const allowTimeTracking = allowTimeTrackingChecked ? 'Y' : 'N';
+
+      let executor = '';
+      if (userFilterValue === 'all') {
+        const exSel = document.getElementById('event-executor');
+        executor = exSel?.value || '';
+      } else {
+        executor = userFilterValue;
+      }
+
+      let startTimeVal, endTimeVal;
+      if (allDay) {
+        // "Весь день" = 09:00–18:00
+        startTimeVal = settings.slotMinTime;
+        endTimeVal = settings.slotMaxTime;
+      } else {
+        // Не "Весь день" — берём инпуты
+        startTimeVal = document.getElementById('event-start-time')?.value || settings.slotMinTime;
+        endTimeVal = document.getElementById('event-end-time')?.value || settings.slotMaxTime;
+      }
+
+      const eventStart = startDateTime ? `${startDateTime}:00` : null;
+      const eventEnd = finishDateTime ? `${finishDateTime}:00` : null;
+      const eventDeadline = deadlineDateTime ? `${deadlineDateTime}:00` : null; // Исправлено
+      console.log('COMMENT', comment);
+      const taskData = {
+        title,
+        comment,
+        executor,
+        start: eventStart,
+        comment,
+        end: eventEnd,
+        deadline: eventDeadline, // Здесь тоже исправлено
+        allDay: allDay, // Приводим к формату Bitrix
+        timeEstimate: timeEstimateSec,
+        groupId,
+        allowTimeTracking, // ✅ Передаем в задачу
+      };
+
+      console.log('Смотрим на отправленный массив данных для задачи:', taskData);
+      let responsibleName = '';
+      if (userFilterValue !== 'all') {
+        // Если выбран конкретный пользователь — берём текст выбранного option
+        responsibleName = globalSelect?.selectedOptions[0]?.textContent || '';
+      } else {
+        // Если выбран вариант "all", то из селекта исполнителя
+        const exSel = document.getElementById('event-executor');
+        responsibleName = exSel?.selectedOptions[0]?.textContent || '';
+      }
+
+      if (isNew) {
+        // Создание задачи
+        createTask(taskData, (res, err) => {
+          if (err) {
+            alert('Ошибка создания задачи');
+          } else {
+            if (window.calendar && res?.task?.id) {
+              const realId = res.task.id;
+              const newTaskColor = colorMap[executor] || '#cccccc'; // Определяем цвет
+              console.log('🚀 Новый цвет задачи:', newTaskColor);
+
+              // Формируем объект задачи в том же формате, что используется в transformTaskToEvent:
+              const newTaskObject = {
+                ...taskData,
+                id: realId,
+                // Для незавершённых задач используем плановые даты:
+                startDatePlan: eventStart,
+                endDatePlan: eventEnd,
+                // Если задача "на весь день", выставляем xmlId:
+                xmlId: allDay ? 'ALLDAY' : null,
+                responsibleId: executor,
+                comment,
+                responsibleName,
+              };
+
+              // Преобразуем задачу в событие (возможно, массив сегментов)
+              const transformed = transformTaskToEvent(newTaskObject, colorMap);
+              const eventsToAdd = Array.isArray(transformed) ? transformed : [transformed];
+
+              // Добавляем каждый сегмент в календарь
+              eventsToAdd.forEach((ev) => {
+                // ✅ Добавляем комментарий в extendedProps перед добавлением события
+                ev.extendedProps = {
+                  ...ev.extendedProps,
+                  comment: newTaskObject.comment, // Добавляем комментарий
+                };
+
+                window.calendar.addEvent(ev);
+              });
+
+              console.log('✅ Задача создана:', realId);
+            }
+          }
+        });
+      } else {
+        // Редактирование задачи
+        const taskId = eventData?.extendedProps?.bitrix24Id || eventData?.id;
+        updateTask(taskId, taskData, (res, err) => {
+          if (err) {
+            alert('Ошибка обновления задачи');
+          } else {
+            // Формируем обновлённый объект задачи для преобразования
+            const updatedTaskObject = {
+              ...taskData,
+              id: taskId,
+              comment,
+              startDatePlan: eventStart,
+              endDatePlan: eventEnd,
+              xmlId: allDay ? 'ALLDAY' : null,
+              responsibleId: executor,
+              responsibleName,
+              allowTimeTracking, // ✅ Передаем в задачу
+            };
+
+            const transformed = transformTaskToEvent(updatedTaskObject, colorMap);
+            const updatedEvent = Array.isArray(transformed) ? transformed[0] : transformed;
+
+            // ✅ Обновляем свойства текущего события в календаре
+            eventData.setProp('title', updatedEvent.title);
+            eventData.setStart(updatedEvent.start);
+            eventData.setEnd(updatedEvent.end);
+
+            // ✅ Обновляем extendedProps, сохраняя старые данные и добавляя новые
+            const updatedExtendedProps = {
+              ...(eventData.extendedProps || {}), // Сохраняем все старые extendedProps
+              ...updatedEvent.extendedProps, // Обновляем новыми данными
+              comment: updatedTaskObject.comment || '', // Добавляем/обновляем комментарий
+            };
+
+            Object.keys(updatedExtendedProps).forEach((key) => {
+              eventData.setExtendedProp(key, updatedExtendedProps[key]);
+            });
+
+            console.log('✅ Задача обновлена:', taskId);
+
+            setTimeout(() => {
+              window.calendar.refetchEvents();
+            }, 500);
+          }
+        });
+      }
+
+      modalInstance.close();
+    });
+  }); // <-- здесь закрывается callback loadUserColors
 
   function shorten(text, maxLen) {
     if (!text) return '';

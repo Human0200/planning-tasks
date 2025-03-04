@@ -352,7 +352,6 @@ export function initCalendar(settings, colorMap) {
 
             // ★ Если нужно очистить старые события, можно добавить:
             // window.calendar.getEvents().forEach(ev => ev.remove());
-
             successCallback(events);
 
             // ★ Если нужно, через небольшую задержку вывести все события, чтобы убедиться, что они есть

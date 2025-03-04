@@ -395,14 +395,29 @@ export function loadTasksForRange(
   const batchSize = 50;
   let startIndex = 0;
 
+  let startDateObj = new Date(startDate);
+  let endDateObj = new Date(endDate);
+
+  // Увеличиваем endDate на 1 день
+  endDateObj.setDate(endDateObj.getDate() + 1);
+
+  // Уменьшаем startDate на 1 день
+  startDateObj.setDate(startDateObj.getDate() - 1);
+
+  // Конвертируем обратно в строку формата YYYY-MM-DD
+  let extendedStartDate = startDateObj.toISOString().split('T')[0];
+  let extendedEndDate = endDateObj.toISOString().split('T')[0];
+
+  console.log(`📅 Новый расширенный диапазон: ${extendedStartDate} - ${extendedEndDate}`);
+
   function fetchBatch(start) {
     let batch = {};
     console.log(`📡 Запрос batch с задачами с ${startDate} по ${endDate}, начиная с ${start}`);
 
     // Формируем фильтр: всегда ограничиваем по диапазону дат
     let filter = {
-      '<=START_DATE_PLAN': endDate,
-      '>=END_DATE_PLAN': startDate,
+      '<=START_DATE_PLAN': extendedEndDate,
+      '>=END_DATE_PLAN': extendedStartDate,
     };
 
     // Если выбран конкретный пользователь – добавляем фильтр по RESPONSIBLE_ID
