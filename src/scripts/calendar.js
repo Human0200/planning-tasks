@@ -6,6 +6,34 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import { showEventForm } from '../components/EventForm.js';
 import { loadTasksForRange } from '../services/taskService.js';
 // Чтобы сохранить логику преобразования задачи в событие, можно создать вспомогательную функцию:
+
+function showCenterMessage(msg) {
+  // Создаем контейнер
+  const messageDiv = document.createElement('div');
+  messageDiv.textContent = msg;
+
+  // Стили для центрирования и оформления
+  messageDiv.style.position = 'fixed';
+  messageDiv.style.top = '50%';
+  messageDiv.style.left = '50%';
+  messageDiv.style.transform = 'translate(-50%, -50%)';
+  messageDiv.style.background = 'rgba(0, 0, 0, 0.8)';
+  messageDiv.style.color = '#fff';
+  messageDiv.style.padding = '20px 40px';
+  messageDiv.style.borderRadius = '8px';
+  messageDiv.style.zIndex = 9999; // поверх всего
+
+  // Добавляем в документ
+  document.body.appendChild(messageDiv);
+
+  // Через 3 секунды убираем
+  setTimeout(() => {
+    if (messageDiv.parentNode) {
+      messageDiv.parentNode.removeChild(messageDiv);
+    }
+  }, 3000);
+}
+
 export function transformTaskToEvent(t, colorMap) {
   const executorId = t.responsibleId;
   const color = String(colorMap[executorId] || '#cccccc');
@@ -74,6 +102,9 @@ export function transformTaskToEvent(t, colorMap) {
         isMultiDay: false,
         durationFact: t.timeSpentInLogs,
         allowTimeTracking: t.allowTimeTracking,
+        addInReport: t.addInReport,
+        taskControl: t.taskControl,
+        status: t.status,
       },
     };
   }
@@ -113,6 +144,9 @@ export function transformTaskToEvent(t, colorMap) {
       isMultiDay: true,
       durationFact: t.timeSpentInLogs,
       allowTimeTracking: t.allowTimeTracking,
+      addInReport: t.addInReport,
+      taskControl: t.taskControl,
+      status: t.status,
     },
   });
 
@@ -151,6 +185,9 @@ export function transformTaskToEvent(t, colorMap) {
         isMultiDay: true,
         durationFact: t.timeSpentInLogs,
         allowTimeTracking: t.allowTimeTracking,
+        addInReport: t.addInReport,
+        taskControl: t.taskControl,
+        status: t.status,
       },
     });
     current.setDate(current.getDate() + 1);
@@ -187,6 +224,9 @@ export function transformTaskToEvent(t, colorMap) {
       isMultiDay: true,
       durationFact: t.timeSpentInLogs,
       allowTimeTracking: t.allowTimeTracking,
+      addInReport: t.addInReport,
+      taskControl: t.taskControl,
+      status: t.status,
     },
   });
 
@@ -273,6 +313,16 @@ export function initCalendar(settings, colorMap) {
       if (arg.event.extendedProps.responsibleName) {
         html += `<div class="fc-event-subtitle wrap-text">Ответственный: ${arg.event.extendedProps.responsibleName}</div>`;
       }
+
+      // Если статус задачи равен "5" (завершена), добавляем белую галочку
+      if (arg.event.extendedProps.status === '5') {
+        html += `<div style="position: absolute; left: 2px; bottom: 2px;">
+               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                 <polyline points="20 6 9 17 4 12"></polyline>
+               </svg>
+             </div>`;
+      }
+
       html += `</div>`;
       return { html };
     },
@@ -293,6 +343,11 @@ export function initCalendar(settings, colorMap) {
     // Новый обработчик клика по уже существующему событию (для редактирования)
     eventClick: (info) => {
       console.log('Клик по событию:', info.event);
+      const status = info.event.extendedProps.status;
+      if (status === '5') {
+        showCenterMessage('Эта задача завершена и не может быть отредактирована');
+        return;
+      }
       // Вызываем модальное окно для редактирования и передаем объект события
       showEventForm(null, info.event, { colorMap });
     },

@@ -21,6 +21,13 @@ export function createTask(taskData, callback) {
         GROUP_ID: taskData.groupId, // <-- тут
         TIME_ESTIMATE: taskData.timeEstimate || null,
         ALLOW_TIME_TRACKING: taskData.allowTimeTracking,
+        SE_PARAMETER: [
+          {
+            VALUE: taskData.addInReport ? 'Y' : 'N',
+            CODE: 3,
+          },
+        ], // "Требует результата"
+        TASK_CONTROL: taskData.taskControl, // "Контроль после завершения"
         // Дополнительные поля, если нужны (приоритет, теги и т.д.)
       },
     },
@@ -55,6 +62,8 @@ export function updateTask(taskId, taskData, callback) {
         DEADLINE: taskData.deadline,
         TIME_ESTIMATE: taskData.timeEstimate || null,
         ALLOW_TIME_TRACKING: taskData.allowTimeTracking,
+
+        TASK_CONTROL: taskData.taskControl, // "Контроль после завершения"
       },
     },
     (result) => {
@@ -160,7 +169,7 @@ export function loadAllTasksforunPlanned(callback) {
           filter: {
             '<STATUS': 4,
           }, // Здесь можно добавить фильтрацию
-          SELECT: ['ID', 'TITLE', 'RESPONSIBLE_ID', 'START_DATE_PLAN', 'END_DATE_PLAN', 'DEADLINE'],
+          select: ['*', 'SE_PARAMETER'],
           start: startPosition,
         },
       ];

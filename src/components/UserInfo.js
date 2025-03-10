@@ -34,6 +34,33 @@ export function UserInfo(onUserChange) {
   // Добавляем в основной контейнер (рядом с select)
   userInfoContainer.appendChild(filterContainer);
 
+  // Добавляем поле поиска по задачам в этот же контейнер (например, справа от чекбоксов)
+  const searchContainer = document.createElement('div');
+  searchContainer.className = 'relative ml-auto'; // ml-auto для сдвига вправо
+  searchContainer.innerHTML = `
+  <span class="absolute inset-y-0 left-0 flex items-center pl-2">
+    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+            d="M21 21l-4.35-4.35m2.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z"/>
+    </svg>
+  </span>
+  <input type="text" id="task-search" class="border rounded pl-10 pr-3 py-2" placeholder="Поиск по задачам...">
+`;
+
+  // Создаем элемент индикатора загрузки
+  const loadingIndicator = document.createElement('img');
+  loadingIndicator.id = 'search-loading';
+  loadingIndicator.src = 'https://bg59.online/We/photos/loading_search.gif'; // ссылка на гифку
+  loadingIndicator.style.position = 'absolute';
+  loadingIndicator.style.right = '10px';
+  loadingIndicator.style.top = '50%';
+  loadingIndicator.style.transform = 'translateY(-50%)';
+  loadingIndicator.style.height = '20px'; // настройте размер по необходимости
+  loadingIndicator.style.display = 'none';
+  searchContainer.appendChild(loadingIndicator);
+
+  filterContainer.appendChild(searchContainer);
+
   // Вешаем обработчики на чекбоксы:
   const chkActualTimeOnly = filterContainer.querySelector('#showActualTimeOnly');
   const chkDeadline = filterContainer.querySelector('#hideNoDeadline');
@@ -49,6 +76,37 @@ export function UserInfo(onUserChange) {
     });
   });
   // ▲▲▲ Конец блока чекбоксов ▲▲▲
+
+  // Добавляем обработчик для поля поиска с дебаунсом
+  // (Чтобы фильтрация не запускалась слишком часто, можно реализовать простейший дебаунс)
+  // Получаем элемент поля поиска и индикатор загрузки (предполагается, что он уже добавлен в searchContainer)
+  let debounceTimeout;
+  const searchInput = searchContainer.querySelector('#task-search');
+
+  searchInput.addEventListener('input', (e) => {
+    // Показываем индикатор сразу при вводе
+    loadingIndicator.style.display = 'block';
+    clearTimeout(debounceTimeout);
+    debounceTimeout = setTimeout(() => {
+      const query = e.target.value.toLowerCase();
+      filterEventsByTitle(query);
+      // После завершения фильтрации скрываем индикатор
+      loadingIndicator.style.display = 'none';
+    }, 300);
+  });
+
+  // Функция фильтрации событий по названию
+  function filterEventsByTitle(searchTerm) {
+    if (!window.calendar) return;
+    window.calendar.getEvents().forEach((event) => {
+      const eventTitle = event.title.toLowerCase();
+      if (eventTitle.includes(searchTerm)) {
+        event.setProp('display', 'auto');
+      } else {
+        event.setProp('display', 'none');
+      }
+    });
+  }
 
   // Заполняем селект реальными данными пользователей через вызов BX24 API (getUsers)
   getUsers((users) => {

@@ -63,6 +63,13 @@ export function openEditModal(taskId) {
         <span class="text-gray-700">Разрешить учет времени</span>
       </label>
 
+
+      <!-- Новый чекбокс: Контроль после завершения -->
+      <label class="block mb-2 flex items-center gap-2">
+        <input type="checkbox" id="control-after-completion" class="cursor-pointer" />
+        <span class="text-gray-700">Контроль после завершения</span>
+      </label>  
+
       <div class="flex justify-end gap-4 mt-6">
         <button id="cancel-edit-task" class="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-600">
           Отмена
@@ -153,6 +160,9 @@ export function openEditModal(taskId) {
       : '';
     // Устанавливаем значение чекбокса allowTimeTracking
     document.getElementById('allowTimeTracking').checked = task.allowTimeTracking === 'Y';
+    // Если нужно, при редактировании можно установить состояния новых чекбоксов:
+
+    document.getElementById('control-after-completion').checked = task.taskControl === 'Y';
     // Заполняем данные об исполнителе (readonly) и сохраняем его ID
     const responsibleField = document.getElementById('editTaskResponsible');
     responsibleField.value = task.responsible?.name || 'Не указан';
@@ -211,6 +221,8 @@ export function openEditModal(taskId) {
       executor: parseInt(document.getElementById('editTaskResponsibleId').value, 10) || null,
       comment: originalComment,
       allowTimeTracking: document.getElementById('allowTimeTracking').checked ? 'Y' : 'N',
+      // Новые поля:
+      taskControl: document.getElementById('control-after-completion').checked ? 'Y' : 'N',
       // Поле timeSpentInLogs не редактируется пользователем и не передаётся в updateTask
     };
 
@@ -250,6 +262,7 @@ export function openEditModal(taskId) {
             executor: executorId,
             deadline: updatedTask.deadline,
             allowTimeTracking: updatedTask.allowTimeTracking,
+            taskControl: updatedTask.taskControl,
           },
         });
 

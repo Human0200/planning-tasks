@@ -23,8 +23,8 @@ function loadUserColors(callback) {
 }
 
 export function showEventForm(date, eventData, options = {}) {
-  loadUserColors((colorMap) => {
-    const colorMap = options.colorMap || {}; // Получаем переданную карту цветов
+  loadUserColors((userColors) => {
+    const colorMap = options.colorMap || userColors; // Получаем переданную карту цветов
     const isEditMode = !!eventData;
 
     // Используйте eventData?.extendedProps вместо eventData?.extendedProps
@@ -160,6 +160,29 @@ export function showEventForm(date, eventData, options = {}) {
     </label>
   </div>
 `;
+
+    const requiresResultCheckbox = isNew
+      ? `
+  <div class="flex items-center mb-4">
+    <input type="checkbox" id="requires-result" class="mr-2">
+    <label for="requires-result" class="text-sm font-medium text-gray-700">
+      Требует результата
+    </label>
+  </div>
+`
+      : '';
+
+    const controlAfterCompletionCheckbox = isNew
+      ? `
+  <div class="flex items-center mb-4">
+    <input type="checkbox" id="control-after-completion" class="mr-2">
+    <label for="control-after-completion" class="text-sm font-medium text-gray-700">
+      Контроль после завершения
+    </label>
+  </div>
+`
+      : '';
+
     // Генерируем форму
     const formContent = `
     <form id="event-form" class="w-full">
@@ -220,7 +243,9 @@ export function showEventForm(date, eventData, options = {}) {
 
 
         <!-- Чекбокс "Учитывать затраченное время" -->
-    ${timeTrackingCheckbox} 
+        ${timeTrackingCheckbox} 
+        ${requiresResultCheckbox}
+        ${controlAfterCompletionCheckbox}
     
 
       <div class="flex justify-end gap-4">
@@ -390,6 +415,23 @@ export function showEventForm(date, eventData, options = {}) {
       const allowTimeTrackingChecked = document.getElementById('allow-time-tracking').checked;
       const allowTimeTracking = allowTimeTrackingChecked ? 'Y' : 'N';
 
+      // Считываем новые чекбоксы:
+      const requiresResultEl = document.getElementById('requires-result');
+      const requiresResultChecked = requiresResultEl
+        ? requiresResultEl.checked
+        : isEditMode
+        ? eventData?.extendedProps?.addInReport === 'Y'
+        : false;
+      const controlAfterCompletionEl = document.getElementById('control-after-completion');
+      const taskControlChecked = controlAfterCompletionEl
+        ? controlAfterCompletionEl.checked
+        : isEditMode
+        ? eventData?.extendedProps?.taskControl === 'Y'
+        : false;
+      // Преобразуем в формат "Y"/"N"
+      const addInReport = requiresResultChecked ? 'Y' : 'N';
+      const taskControl = taskControlChecked ? 'Y' : 'N';
+
       let executor = '';
       if (userFilterValue === 'all') {
         const exSel = document.getElementById('event-executor');
@@ -413,6 +455,8 @@ export function showEventForm(date, eventData, options = {}) {
       const eventEnd = finishDateTime ? `${finishDateTime}:00` : null;
       const eventDeadline = deadlineDateTime ? `${deadlineDateTime}:00` : null; // Исправлено
       console.log('COMMENT', comment);
+      console.log('addInReport', addInReport);
+      console.log('taskControl', taskControl);
       const taskData = {
         title,
         comment,
@@ -425,6 +469,8 @@ export function showEventForm(date, eventData, options = {}) {
         timeEstimate: timeEstimateSec,
         groupId,
         allowTimeTracking, // ✅ Передаем в задачу
+        addInReport, // Требует результата
+        taskControl, // Контроль после завершения
       };
 
       console.log('Смотрим на отправленный массив данных для задачи:', taskData);
@@ -530,8 +576,69 @@ export function showEventForm(date, eventData, options = {}) {
         });
       }
 
+      if (!isNew) {
+        const reportBtn = document.getElementById('generate-report');
+        if (reportBtn) {
+          reportBtn.addEventListener('click', async () => {
+            // 1. Считываем исходные поля
+            let titleField = document.getElementById('event-title').value.trim();
+            let commentField = document.getElementById('event-comment').value.trim();
+
+            // 2. Сокращаем их, чтобы не превышать лимит
+            //    (Например, 50 символов для названия, 100 для комментария)
+            titleField = shorten(titleField, 50);
+            commentField = shorten(commentField, 100);
+
+            // 3. Формируем промпт (сырой)
+            let rawPrompt = `
+Составь краткий отчёт по задаче:
+Название: "${titleField}"
+Описание: "${commentField}"
+Напиши отчёт на русском, в понятном виде, максимум 10 предложений.
+`;
+
+            // 4. И ещё раз подрезаем сам промпт, чтобы он не был длиннее 256 символов
+            const finalPrompt = shorten(rawPrompt, 256);
+            console.log('📝 Окончательный промпт для AI:', finalPrompt);
+
+            try {
+              // 5. Вызываем функцию AI
+              const aiAnswer = await askAiReport(finalPrompt);
+              console.log('Ответ AI:', aiAnswer);
+
+              // 6. Отображаем результат
+              showAiReportModal(aiAnswer);
+            } catch (err) {
+              console.error('Ошибка при запросе отчёта:', err);
+              alert('Ошибка при формировании отчёта');
+            }
+          });
+        }
+      }
+
       modalInstance.close();
     });
+
+    if (!isNew) {
+      document.getElementById('delete-event').addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'delete-event') {
+          const taskId = eventData?.extendedProps?.bitrix24Id || eventData?.id;
+          if (!taskId) {
+            console.error('❌ Ошибка: ID задачи не найден!');
+            return;
+          }
+          deleteTask(taskId, (success, err) => {
+            if (success) {
+              eventData?.remove();
+              console.log('✅ Задача удалена:', taskId);
+            } else {
+              alert('Ошибка удаления задачи');
+            }
+            modalInstance.close();
+          });
+        }
+      });
+    }
   }); // <-- здесь закрывается callback loadUserColors
 
   function shorten(text, maxLen) {
@@ -542,65 +649,7 @@ export function showEventForm(date, eventData, options = {}) {
     return text.slice(0, maxLen - 3) + '...';
   }
 
-  if (!isNew) {
-    const reportBtn = document.getElementById('generate-report');
-    if (reportBtn) {
-      reportBtn.addEventListener('click', async () => {
-        // 1. Считываем исходные поля
-        let titleField = document.getElementById('event-title').value.trim();
-        let commentField = document.getElementById('event-comment').value.trim();
-
-        // 2. Сокращаем их, чтобы не превышать лимит
-        //    (Например, 50 символов для названия, 100 для комментария)
-        titleField = shorten(titleField, 50);
-        commentField = shorten(commentField, 100);
-
-        // 3. Формируем промпт (сырой)
-        let rawPrompt = `
-Составь краткий отчёт по задаче:
-Название: "${titleField}"
-Описание: "${commentField}"
-Напиши отчёт на русском, в понятном виде, максимум 10 предложений.
-`;
-
-        // 4. И ещё раз подрезаем сам промпт, чтобы он не был длиннее 256 символов
-        const finalPrompt = shorten(rawPrompt, 256);
-        console.log('📝 Окончательный промпт для AI:', finalPrompt);
-
-        try {
-          // 5. Вызываем функцию AI
-          const aiAnswer = await askAiReport(finalPrompt);
-          console.log('Ответ AI:', aiAnswer);
-
-          // 6. Отображаем результат
-          showAiReportModal(aiAnswer);
-        } catch (err) {
-          console.error('Ошибка при запросе отчёта:', err);
-          alert('Ошибка при формировании отчёта');
-        }
-      });
-    }
-  }
-
   // Удаление задачи
-  if (!isNew) {
-    document.getElementById('delete-event').addEventListener('click', () => {
-      const taskId = eventData?.extendedProps?.bitrix24Id || eventData?.id;
-      if (!taskId) {
-        console.error('❌ Ошибка: ID задачи не найден!');
-        return;
-      }
-      deleteTask(taskId, (success, err) => {
-        if (success) {
-          eventData?.remove();
-          console.log('✅ Задача удалена:', taskId);
-        } else {
-          alert('Ошибка удаления задачи');
-        }
-        modalInstance.close();
-      });
-    });
-  }
 }
 
 function adjustDropdownPosition() {
