@@ -157,8 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Удаляем все текущие события перед обновлением
     console.log('🧹 Очищаем все события перед фильтрацией...');
-    window.calendar.getEvents().forEach((event) => event.remove());
-
+    //window.calendar.getEvents().forEach((event) => event.remove());
+    window.calendar.removeAllEvents();
     // Если loader ещё не создан, создаём его (или используйте уже существующий)
     let loaderEl = document.getElementById('loader');
     if (!loaderEl) {

@@ -275,7 +275,7 @@ export function openEditModal(taskId) {
       // 🔥 Перезапрашиваем события с сервера, но с задержкой (чтобы API успел обработать)
       setTimeout(() => {
         console.log('🔄 Запрос свежих данных из Bitrix24');
-        const selectedUser = document.getElementById('user-select')?.value || 'all';
+        const selectedUser = document.getElementById('user-select')?.value || 'null';
         window.filterEvents(selectedUser);
       }, 2000); // Даем серверу 2 секунды на обновление данных
     });
