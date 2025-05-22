@@ -1,4 +1,5 @@
 import { getUserData, getUsers } from '../services/userService.js';
+import { showEventForm } from './EventForm.js'; // поправьте путь, если нужно
 
 export function UserInfo(onUserChange) {
   const userInfoContainer = document.createElement('div');
@@ -44,7 +45,7 @@ export function UserInfo(onUserChange) {
             d="M21 21l-4.35-4.35m2.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z"/>
     </svg>
   </span>
-  <input type="text" id="task-search" class="border rounded pl-10 pr-3 py-2" placeholder="Поиск по задачам...">
+  <input type="text" id="task-search" class="border rounded pl-10 pr-3 py-2" placeholder="Поиск по задачам..."> 
 `;
 
   // Создаем элемент индикатора загрузки
@@ -60,6 +61,21 @@ export function UserInfo(onUserChange) {
   searchContainer.appendChild(loadingIndicator);
 
   filterContainer.appendChild(searchContainer);
+
+  // ─── кнопка «Создать задачу» ───────────────────────────────────────
+  const createTaskBtn = document.createElement('button');
+  createTaskBtn.textContent = 'Создать задачу';
+  createTaskBtn.className = 'ml-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600';
+  createTaskBtn.addEventListener('click', () => {
+    // Открываем форму создания задачи на текущий момент (можешь передать любую дату)
+    const now = new Date().toISOString();
+    showEventForm(now, null, {
+      allDay: false,
+      colorMap: window.userColors, // или откуда у тебя приходит карта цветов
+    });
+  });
+  filterContainer.appendChild(createTaskBtn);
+  // ───────────────────────────────────────────────────────────────────
 
   // Вешаем обработчики на чекбоксы:
   const chkActualTimeOnly = filterContainer.querySelector('#showActualTimeOnly');
